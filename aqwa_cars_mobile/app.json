@@ -1,7 +1,71 @@
 {
   "expo": {
-    "name": "aqwa_cars_mobile",
-    "slug": "aqwa_cars_mobile",
-    "version": "1.0.0"
+    "name": "aqwa cars",
+    "slug": "theases",
+    "version": "1.0.0",
+    "jsEngine": "jsc",
+    "orientation": "portrait",
+    "androidNavigationBar": {
+      "visible": "sticky-immersive"
+    },
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/aqwaWhite.png",
+      "backgroundColor": "#000000"
+    },
+    "permissions": [
+      "CAMERA",
+      "MICROPHONE"
+    ],
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to the camera to make video calls",
+        "NSMicrophoneUsageDescription": "This app needs access to the microphone to make video calls"
+      },
+      "newArchEnabled": true
+    },
+    "android": {
+      "package": "android.package",
+      "googleServiceFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "newArchEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ],
+      
+      [
+        "@config-plugins/react-native-webrtc",
+        {"config":{
+
+          "audio": true,
+          "video": true
+        }
+        }
+      ],
+      "expo-document-picker",
+      "expo-image-picker",
+      "expo-build-properties"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "23c0b65b-8ab5-4a64-9a56-0ff2118515ad"
+      }
+    }
   }
 }
