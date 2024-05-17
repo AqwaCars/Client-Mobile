@@ -34,7 +34,7 @@ const ChangePassword = () => {
   const userEmail = (value) => {
     dispatch(saveEmailForgot(value));
   };
-  const email = "makhloufaymen.fr@gmail.com";
+  const email = useSelector((state) => state.user?.emailForget);
 
   const toggleNewPasswordVisibility = () => {
     setShowNewPassword(!showNewPassword);

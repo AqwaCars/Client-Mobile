@@ -14,12 +14,10 @@ import {
   Keyboard,
   ScrollView,
   Pressable,
-  Button,
-  Platform,
   Alert,
   Linking,
   Image as RNImage,
-  ActivityIndicator
+  ActivityIndicator,
 } from "react-native";
 
 import { showToast } from "./../Helpers.js";
@@ -37,23 +35,28 @@ import { useSelector, useDispatch } from "react-redux";
 import { SignUpClick } from "../store/userSlice";
 import { useNavigation } from "@react-navigation/native";
 import appConfig from "../appConfig.js";
-import { saveEmailForgot,savePasswordUser } from "../store/userSlice";
+import { saveEmailForgot, savePasswordUser } from "../store/userSlice";
 import Toast from "react-native-toast-message";
-
+import CountryPicker from "react-native-country-picker-modal";
+import libphonenumber from "libphonenumber-js";
+// const parsePhoneNumber = libphonenumber.parsePhoneNumberFromString;
 // import { useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons,MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons,Feather } from "@expo/vector-icons";
+
 const { width, height } = Dimensions.get("screen");
 const NewSignUp = () => {
+  const parsePhoneNumberFromString = libphonenumber.parsePhoneNumberFromString;
+
   const flatListRef = useRef(null);
   const [fontLoaded, setFontLoaded] = useState(false);
   const [Ratio, setRatio] = useState(0);
   const [isCameraVisible, setIsCameraVisible] = useState(false);
   // const [type, setType] = useState("");
   // const [typeSelfie, setTypeSelfie] = useState("");
-  // const [type, setType] = useState(CameraPermissions.CameraType.back);
-  // const [typeSelfie, setTypeSelfie] = useState(
-  //   CameraPermissions.CameraType.front
-  // );
+  const [type, setType] = useState(CameraPermissions.CameraType.back);
+  const [typeSelfie, setTypeSelfie] = useState(
+    CameraPermissions.CameraType.front
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [Document, setDocument] = useState("");
   const [showImageModal, setShowImageModal] = useState(false);
@@ -61,18 +64,20 @@ const NewSignUp = () => {
   const [loading, setLoading] = useState(false);
 
   const [userDetails, setUserDetails] = useState({
-    name: "aymen",
-    phone: "556685",
-    email: "aymen@gmail.com",
-    password: "Azerty123 @",
-    confirmPassword: "Azerty123 @",
+    name: "",
+    phone: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
     dateOfBirth: "",
   });
   const [picsDetail, setPicsDetails] = useState({
-    selfie: "bfdgef",
-    license: "gfdgdf",
-    backLicense: "gdfgd",
-    passport: "gdfgdf",
+    selfie: "",
+    license: "",
+    backLicense: "",
+    passport: "",
+    frontCardId: "",
+    backCardId: "",
   });
   console.log("piiiiiics", picsDetail);
   const [date, setDate] = useState(new Date());
@@ -83,6 +88,152 @@ const NewSignUp = () => {
   const [cameraPermission, setCameraPermission] = useState(null);
   const [capturedImage, setCapturedImage] = useState("");
   const [showImage, setShowImage] = useState(false);
+  const [countryCode, setCountryCode] = useState("TN");
+  const [callingCode, setCallingCode] = useState("+216");
+  const [countryName, setCountryName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isValid, setIsValid] = useState(true);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [nameError, setNameError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [dateOfBirthError, setDateOfBirthError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+
+  
+
+const cloudinaryUpload = async (imageUri, folderName) => {
+  const cloudName = "dl9cp8cwq";
+  const myUploadPreset = "aqwa_cars";
+
+  try {
+    const formData = new FormData();
+    formData.append("file", {
+      uri: imageUri,
+      type: "image/jpeg", 
+      name: "my_image.jpg",
+    });
+    formData.append("upload_preset", myUploadPreset);
+
+    // Append the folder name to the formData if it exists
+    if (folderName) {
+      formData.append("folder", "user_images");
+    }
+
+    const response = await axios.post(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      formData
+    );
+
+    if (response.status === 200) {
+      console.log("Full response from Cloudinary:", response.data);
+      return response.data.secure_url;
+    } else {
+      console.error("Image upload failed");
+    }
+    
+  } catch (error) {
+    console.log("Full response from Cloudinary:", error.message);
+    console.error("Cloudinary upload error:", JSON.stringify(error));
+  }
+};
+
+  const validatePassword = () => {
+    let error = "";
+    if (userDetails.password.length > 0) {
+      if (userDetails.password.length < 8) {
+        error = "Password must be at least 8 characters long";
+      } else if (!/[a-z]/.test(userDetails.password)) {
+        error = "Password must contain at least one lowercase letter";
+      } else if (!/[A-Z]/.test(userDetails.password)) {
+        error = "Password must contain at least one uppercase letter";
+      } else if (!/\d/.test(userDetails.password)) {
+        error = "Password must contain at least one digit";
+      } else if (!/[@$!%*?&]/.test(userDetails.password)) {
+        error = "Password must contain at least one special character";
+      }
+    }
+    setPasswordError(error);
+  };
+  
+  const validateConfirmPassword = () => {
+    let error = "";
+    if (userDetails.confirmPassword.length > 0) {
+      if (userDetails.confirmPassword !== userDetails.password) {
+        error = "Passwords do not match";
+      }
+    }
+    setConfirmPasswordError(error);
+  };
+  
+  useEffect(() => {
+    validatePassword();
+    validateConfirmPassword();
+  }, [userDetails.password, userDetails.confirmPassword]);
+  const validateEmail = () => {
+    const trimmedEmail = userDetails.email.trim();
+    const re = /^\S+@\S+\.\S+$/;
+    const isValid = re.test(trimmedEmail);
+    setUserDetails({ ...userDetails, email: trimmedEmail });
+    setEmailError(isValid ? "" : trimmedEmail ? "Invalid email format" : "");
+  };
+  useEffect(()=>{
+    validateEmail()
+  },[userDetails.email])
+  const toggleNewPasswordVisibility = () => {
+    setShowNewPassword(!showNewPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+  const validatePhoneNumber = (number, country) => {
+    if (number.trim() === "") {
+      setIsValid(true);
+      return;
+    }
+    try {
+      const phoneNumberObj = parsePhoneNumberFromString(number, country);
+      if (phoneNumberObj && phoneNumberObj.isValid()) {
+        setIsValid(true);
+      } else {
+        setIsValid(false);
+      }
+    } catch (error) {
+      setIsValid(false);
+    }
+  };
+
+  const handleCountryCodeChange = (c) => {
+    setCountryCode(c.cca2);
+    setCallingCode(`+${c.callingCode[0]}`);
+    setCountryName(c.name);
+  };
+
+  const formatPhoneNumber = (text) => {
+    try {
+      const phoneNumberObj = parsePhoneNumberFromString(text, countryCode);
+      if (phoneNumberObj) {
+        setPhoneNumber(phoneNumberObj.formatNational());
+      }
+    } catch (error) {
+      setIsValid(false);
+    }
+  };
+console.log(userDetails.phone);
+  useEffect(() => {
+    validatePhoneNumber(phoneNumber, countryCode);
+    if(callingCode && phoneNumber && isValid){
+
+      setUserDetails({ ...userDetails, phone: `${callingCode} ${phoneNumber}` });
+    }else{
+      setUserDetails({ ...userDetails, phone:"" });
+
+    } 
+
+  }, [phoneNumber, countryCode]);
 
   const userEmail = (value) => {
     dispatch(saveEmailForgot(value));
@@ -93,19 +244,19 @@ const NewSignUp = () => {
   const otpVerifSend = async () => {
     if (userDetails.email) {
       try {
-        setLoading(true); 
+        setLoading(true);
         const response = await axios.post(
           `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/sendVerificationEmail`,
-          { email:userDetails.email }
+          { email: userDetails.email }
         );
 
         if (response.status === 200) {
-          console.log("Successfully OTP Verified")
-        
+          console.log("Successfully OTP Verified");
+
           Toast.show({
-            type: 'success',
-            text1: 'Success',
-            text2: 'Code sent successfully',
+            type: "success",
+            text1: "Success",
+            text2: "Code sent successfully",
           });
         }
       } catch (error) {
@@ -113,16 +264,16 @@ const NewSignUp = () => {
           if (error.response.status === 404) {
             console.log("User not found");
             Toast.show({
-              type: 'error',
-              text1: 'Error',
-              text2: 'User not found',
+              type: "error",
+              text1: "Error",
+              text2: "User not found",
             });
           } else if (error.response.status === 500) {
             console.log("Failed to send email");
             Toast.show({
-              type: 'error',
-              text1: 'Error',
-              text2: 'Failed to send email',
+              type: "error",
+              text1: "Error",
+              text2: "Failed to send email",
             });
           } else {
             console.log("Other error:", error);
@@ -130,20 +281,20 @@ const NewSignUp = () => {
         } else {
           console.error("Network error:", error);
           Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: 'Network error',
+            type: "error",
+            text1: "Error",
+            text2: "Network error",
           });
         }
       } finally {
-        setLoading(false); 
+        setLoading(false);
       }
     } else {
       console.log("Please enter a valid email");
       Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Please enter a valid email',
+        type: "error",
+        text1: "Error",
+        text2: "Please enter a valid email",
       });
     }
   };
@@ -195,7 +346,7 @@ const NewSignUp = () => {
 
   const SignUpHandle = async () => {
     setLoading(true); // Start loader
-  
+
     try {
       const response = await axios.post(
         `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/SignUpUser`,
@@ -212,12 +363,12 @@ const NewSignUp = () => {
           passport: picsDetail.passport,
         }
       );
-  
+
       if (response.status === 201) {
         Toast.show({
-          type: 'success',
-          text1: 'Success',
-          text2: 'Registration Successfully done 😃!',
+          type: "success",
+          text1: "Success",
+          text2: "Registration Successfully done 😃!",
         });
         console.log("Successfully registered");
         await userEmail(userDetails.email);
@@ -230,37 +381,40 @@ const NewSignUp = () => {
         const status = error.response.status;
         if (status === 409) {
           Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: error.response.data.error || 'Conflict occurred. Please try again.',
+            type: "error",
+            text1: "Error",
+            text2:
+              error.response.data.error ||
+              "Conflict occurred. Please try again.",
           });
         } else if (status === 422) {
           Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: error.response.data.error || 'Validation error. Please check your input.',
+            type: "error",
+            text1: "Error",
+            text2:
+              error.response.data.error ||
+              "Validation error. Please check your input.",
           });
         } else {
           Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: 'An unexpected error occurred. Please try again.',
+            type: "error",
+            text1: "Error",
+            text2: "An unexpected error occurred. Please try again.",
           });
         }
         // console.error("Error registering user:", error.response.data.error);
       } else {
         Toast.show({
-          type: 'error',
-          text1: 'Error',
-          text2: 'Network error. Please try again.',
+          type: "error",
+          text1: "Error",
+          text2: "Network error. Please try again.",
         });
         // console.error("Network error:", error);
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
-  
 
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -330,7 +484,7 @@ const NewSignUp = () => {
   function isFormComplete(userDetails, picsDetail) {
     return (
       Object.values(userDetails).length === 6 &&
-      Object.values(picsDetail).length === 4 &&
+      Object.values(picsDetail).length === 6 &&
       Object.values(userDetails).every((value) => value !== "") &&
       Object.values(picsDetail).every((value) => value !== "")
     );
@@ -362,17 +516,6 @@ const NewSignUp = () => {
     setUserDetails({ ...userDetails, [field]: value });
   };
 
-  const handlePics = (field, value) => {
-    setPicsDetails({ ...picsDetail, [field]: value });
-    setShowImageModal(false);
-    setIsCameraVisible(false);
-  };
-  const handleCanceledPics = (field, value) => {
-    setCapturedImage("");
-    setShowImageModal(false);
-    setIsCameraVisible(true);
-  };
-
   const handleButtonPress = () => {
     if (activeIndex === 0) {
       setActiveIndex(1);
@@ -393,25 +536,8 @@ const NewSignUp = () => {
     setActiveIndex(pageNum);
   };
 
-  const pickImage = async () => {
-    try {
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
-        allowsEditing: false,
-        aspect: [4, 3],
-        quality: 1,
-      });
-      // console.log(result);
-      if (!result.canceled) {
-        setDocument(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error("Error picking image: ", error);
-    }
-  };
-
   if (!fontLoaded) {
-    return null; // or a loading indicator
+    return null;
   }
 
   const renderItem = ({ item }) => {
@@ -460,6 +586,8 @@ const NewSignUp = () => {
                   onChangeText={(text) => handleUserChange("name", text)}
                   value={userDetails.name}
                 />
+                <View style={styles.contInpError} >
+
                 <TextInput
                   style={styles.FirstInput}
                   placeholder="Enter Your  Email"
@@ -468,21 +596,56 @@ const NewSignUp = () => {
                   value={userDetails.email}
                   keyboardType="email-address"
                 />
-                <TextInput
-                  style={styles.FirstInput}
-                  placeholder="Type Your Phone Number"
-                  placeholderTextColor={"#cccccc"}
-                  onChangeText={(text) => handleUserChange("phone", text)}
-                  value={userDetails.phone}
-                  keyboardType="phone-pad"
-                />
+                 {emailError ? (
+                    <Text style={styles.errorText}>{emailError}</Text>
+                  ) : null}
+                </View>
+<View style={styles.contInpError}>
 
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View style={styles.FirstInputCont}>
+                    <CountryPicker
+                      withCallingCode
+                      withFilter
+                      withFlag
+                      // withCountryNameButton
+                      // withCallingCodeButton
+                      withAlphaFilter
+                      countryCode={countryCode}
+                      onSelect={handleCountryCodeChange}
+                      containerButtonStyle={[
+                 
+                        styles.FirstInputPhonePicker,
+                      ]}
+                    />
+                      <View style={styles.callingCodeTextCont}>
+
+                    {!phoneNumber ? <Text style={{ color: "#cccccc" }}>{callingCode}</Text>:<Text style={{ color: "white" }}>{callingCode}</Text>}
+                      </View>
+                    <TextInput
+                      style={styles.FirstInputPhone}
+                      onChangeText={(text) => {
+                        setPhoneNumber(text);
+                        formatPhoneNumber(text);
+                      }}
+                      value={phoneNumber}
+                      placeholder="Enter your phone number"
+                      placeholderTextColor={"#cccccc"}
+
+                      // required
+                      keyboardType="phone-pad"
+                      blurOnSubmit={false}
+                    />
+                  </View>
+                </View>
+                  {!isValid && phoneNumber.trim() !== "" && (
+          <Text style={styles.errorText}>Invalid phone number</Text>
+        )}
+</View>
                 <TouchableOpacity onPress={showMode} style={styles.birthBtn}>
-                  <Text style={styles.birthText}>
-                    {!userDetails.dateOfBirth
-                      ? "Select your date"
-                      : userDetails.dateOfBirth}
-                  </Text>
+                { !userDetails.dateOfBirth?  <Text style={{ color: "#cccccc" }}>
+                  Select your date
+                  </Text>:<Text style={{ color: "white" }}>{userDetails.dateOfBirth}</Text>}
                 </TouchableOpacity>
                 {show && (
                   <DateTimePicker
@@ -493,17 +656,34 @@ const NewSignUp = () => {
                     onDismiss={onDismiss}
                   />
                 )}
+                <View style={styles.contInpError} >
+
+                <View>
                 <TextInput
-                  style={styles.FirstInput}
+                  style={styles.FirstInputPassword}
                   placeholder="Type Your Password"
                   placeholderTextColor={"#cccccc"}
                   onChangeText={(text) => handleUserChange("password", text)}
                   value={userDetails.password}
                   keyboardType="default"
-                  secureTextEntry={true}
+                  secureTextEntry={!showNewPassword}
                 />
+                 <Pressable
+                    style={styles.eyeIconContainer}
+                    onPress={toggleNewPasswordVisibility}
+                  >
+                    <Feather name={showNewPassword ? "eye" : "eye-off"} size={18} color="#cccccc" />
+                  </Pressable>
+                </View>
+                {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+
+                </View>
+              <View style={styles.contInpError} >
+
+                <View>
+
                 <TextInput
-                  style={styles.FirstInput}
+                  style={styles.FirstInputPassword}
                   placeholder="Confirm Your Password"
                   placeholderTextColor={"#cccccc"}
                   onChangeText={(text) =>
@@ -511,8 +691,18 @@ const NewSignUp = () => {
                   }
                   value={userDetails.confirmPassword}
                   keyboardType="default"
-                  secureTextEntry={true}
+                  secureTextEntry={!showConfirmPassword}
                 />
+                  <Pressable
+                    style={styles.eyeIconContainer}
+                    onPress={toggleConfirmPasswordVisibility}
+                  >
+                    <Feather name={showConfirmPassword ? "eye" : "eye-off"} size={18} color="#cccccc" />
+                  </Pressable>
+                </View>
+                {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
+
+              </View>
               </View>
             </View>
           </ScrollView>
@@ -582,19 +772,19 @@ const NewSignUp = () => {
                       },
                       {
                         backgroundColor: picsDetail.selfie
-                          ? "transparent" 
+                          ? "transparent"
                           : "transparent",
                       },
                     ]}
                     placeholder={
                       picsDetail.selfie
-                        ? "Tap here to change Image  ☑️"
+                        ? "Tap here to change Selfie  ☑️"
                         : "Take a Selfie"
                     }
                     placeholderTextColor={
                       picsDetail.selfie ? "#cccccc" : "#cccccc"
-                    } 
-                    editable={false} 
+                    }
+                    editable={false}
                   />
                   {!picsDetail.selfie && (
                     <Text
@@ -632,8 +822,8 @@ const NewSignUp = () => {
                     ]}
                     placeholder={
                       picsDetail.license
-                        ? "Tap here to change Image  ☑️"
-                        : " photo of your Driving License "
+                        ? "Tap here to change Driving License front  ☑️"
+                        : " Photo of the front of your Driving License "
                     }
                     placeholderTextColor={"#cccccc"}
                     // keyboardType="email-address"
@@ -674,8 +864,92 @@ const NewSignUp = () => {
                     ]}
                     placeholder={
                       picsDetail.backLicense
-                        ? "Tap here to change Image  ☑️"
-                        : " photo of the back of your driving license "
+                        ? "Tap here to change Driving License back  ☑️"
+                        : " Photo of the back of your Driving License "
+                    }
+                    placeholderTextColor={"#cccccc"}
+                    // keyboardType="email-address"
+                    editable={false} // Make the TextInput not editable
+                  />
+                  {!picsDetail.backLicense && (
+                    <Text
+                      style={{
+                        color: "white",
+                        position: "absolute",
+                        right: 5,
+                        top: -15,
+                      }}
+                    >
+                      *
+                    </Text>
+                  )}
+                </Pressable>
+                <Pressable
+                  style={styles.inputContainer}
+                  onPress={() => {
+                    setType("back");
+                    setPortrait("frontCardId");
+                    setIsCameraVisible(true);
+                  }}
+                >
+                  <View
+                    style={{
+                      paddingBottom: height * 0.007,
+                    }}
+                  >
+                    {picsDetail.license ? <Change /> : <Add />}
+                  </View>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { opacity: picsDetail.license ? 0.5 : 1 },
+                    ]}
+                    placeholder={
+                      picsDetail.frontCardId
+                        ? "Tap here to change Id Card front  ☑️"
+                        : " Photo of the front of your Id Card "
+                    }
+                    placeholderTextColor={"#cccccc"}
+                    // keyboardType="email-address"
+                    editable={false} // Make the TextInput not editable
+                  />
+                  {!picsDetail.license && (
+                    <Text
+                      style={{
+                        color: "white",
+                        position: "absolute",
+                        right: 5,
+                        top: -15,
+                      }}
+                    >
+                      *
+                    </Text>
+                  )}
+                </Pressable>
+                <Pressable
+                  style={styles.inputContainer}
+                  onPress={() => {
+                    setType("back");
+                    setPortrait("backCardId");
+                    setIsCameraVisible(true);
+                  }}
+                >
+                  <View
+                    style={{
+                      paddingBottom: height * 0.007,
+                    }}
+                  >
+                    {picsDetail.backLicense ? <Change /> : <Add />}
+                  </View>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { opacity: picsDetail.backLicense ? 0.5 : 1 },
+                    ]}
+                    placeholder={
+                      picsDetail.backCardId
+                        ? "Tap here to change Id Card back  ☑️"
+                        : " Photo of the back of your Id Card "
                     }
                     placeholderTextColor={"#cccccc"}
                     // keyboardType="email-address"
@@ -716,8 +990,8 @@ const NewSignUp = () => {
                     ]}
                     placeholder={
                       picsDetail.passport
-                        ? "Tap here to change Image  ☑️"
-                        : " photo of your Passport  "
+                        ? "Tap here to change Passporty  ☑️"
+                        : " Photo of your Passport (optional)  "
                     }
                     placeholderTextColor={"#cccccc"}
                     // keyboardType="email-address"
@@ -731,9 +1005,7 @@ const NewSignUp = () => {
                         right: 5,
                         top: -15,
                       }}
-                    >
-                      *
-                    </Text>
+                    ></Text>
                   )}
                 </Pressable>
               </View>
@@ -800,10 +1072,10 @@ const NewSignUp = () => {
                   {isFormComplete(userDetails, picsDetail)
                     ? "Submit"
                     : activeIndex === 0
-                      ? "Next"
-                      : activeIndex === 1
-                        ? "Previous"
-                        : null}
+                    ? "Next"
+                    : activeIndex === 1
+                    ? "Previous"
+                    : null}
                 </Text>
                 {isFormComplete(userDetails, picsDetail) ? (
                   <Arrowright />
@@ -813,58 +1085,56 @@ const NewSignUp = () => {
               </View>
             </Pressable>
           )}
-          {loading && ( 
-          <View style={styles.loader}>
-            <ActivityIndicator size="large" color="white" />
-          </View>
-        )}
+          {loading && (
+            <View style={styles.loader}>
+              <ActivityIndicator size="large" color="white" />
+            </View>
+          )}
         </LinearGradient>
       )}
-   
-  {isCameraVisible && (
-      <View style={styles.containerCCamera}>
-    <View style={styles.cameraContainer}>
-      <Camera
-        ref={cameraRef}
-        style={styles.camera}
-        type={type}
-        ratio="16:9"
-      />
-      {showImageModal && (
-        <ImagePreviewModal
-          visible={showImageModal}
-          imageUri={capturedImage}
-          onConfirm={handleConfirmImage}
-          onRetake={handleRetakePicture}
-        />
-      )}
-      <TouchableOpacity
-          style={styles.cancelButtonContainer}
-          onPress={() => setIsCameraVisible(false)}
-        >
-          <MaterialIcons name="cancel" size={24} color="white" />
-        </TouchableOpacity>
-          <View style={styles.buttonContainer}>
-        {/* <TouchableOpacity onPress={() => setIsCameraVisible(false)}>
+
+      {isCameraVisible && (
+        <View style={styles.containerCCamera}>
+          <View style={styles.cameraContainer}>
+            <Camera
+              ref={cameraRef}
+              style={styles.camera}
+              type={type}
+              ratio="16:9"
+            />
+            {showImageModal && (
+              <ImagePreviewModal
+                visible={showImageModal}
+                imageUri={capturedImage}
+                onConfirm={handleConfirmImage}
+                onRetake={handleRetakePicture}
+                portait={portait}
+              />
+            )}
+            <TouchableOpacity
+              style={styles.cancelButtonContainer}
+              onPress={() => setIsCameraVisible(false)}
+            >
+              <MaterialIcons name="cancel" size={24} color="white" />
+            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+              {/* <TouchableOpacity onPress={() => setIsCameraVisible(false)}>
         <MaterialIcons name="cancel" size={24} color="white" />
         </TouchableOpacity> */}
-        <TouchableOpacity
-          style={styles.captureButton}
-          onPress={() => takePicture(portait)}
-        >
-          <MaterialCommunityIcons
-            name="camera-iris"
-            size={75}
-            color="white"
-          />
-        </TouchableOpacity>
-      </View>
-       
-    </View>
-   
-</View>
-  )}
-
+              <TouchableOpacity
+                style={styles.captureButton}
+                onPress={() => takePicture(portait)}
+              >
+                <MaterialCommunityIcons
+                  name="camera-iris"
+                  size={75}
+                  color="white"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </>
   );
 };
@@ -947,7 +1217,7 @@ const styles = StyleSheet.create({
     // justifyContent: "space-evenly",
     flexGrow: 1,
   },
-  birthBtn:{
+  birthBtn: {
     height: Dimensions.get("window").height * 0.05,
     width: width * 0.75,
     color: "white",
@@ -967,39 +1237,39 @@ const styles = StyleSheet.create({
   },
   cameraContainer: {
     flex: 1,
-    backgroundColor: 'black',
-    justifyContent: 'space-between',
+    backgroundColor: "black",
+    justifyContent: "space-between",
   },
   camera: {
     // flex: 1,
-    width: width, 
-    height: height * 0.8 
+    width: width,
+    height: height * 0.8,
   },
   buttonContainer: {
-    height:height*0.2,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems:"center",
+    height: height * 0.2,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: 'rgba(34, 34, 34, 0.9)', 
+    backgroundColor: "rgba(34, 34, 34, 0.9)",
   },
   cancelButton: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
   },
   captureButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     // paddingHorizontal: 20,
     // paddingVertical: 10,
     borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height:90,
-    width:90,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 90,
+    width: 90,
   },
   cancelButtonContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 20,
     right: 20,
     zIndex: 1,
@@ -1014,6 +1284,72 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
   },
+  FirstInputPhone: {
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.5,
+    color: "white",
+
+  },
+  FirstInputPhonePicker: {
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.08,
+    flexDirection: "column",
+    alignItems:"center",
+    justifyContent:"flex-end",
+    paddingBottom:7
+    // color: "white",
+    // marginBottom: 10,
+    // padding: 5,
+    // borderRadius: 5,
+    // borderColor: "gray",
+    // borderBottomWidth: 1,
+  },
+  FirstInputCont: {
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.75,
+    color: "white",
+    marginBottom: 10,
+    padding: 5,
+    borderRadius: 5,
+    borderColor: "gray",
+    borderBottomWidth: 1,
+    flexDirection: "row",
+  },
+  callingCodeText:{
+    color: "white",
+    
+  },
+  callingCodeTextCont:{
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.13,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  eyeIconContainer: {
+    position: "absolute",
+    top: "50%",
+    right: 10,
+    transform: [{ translateY: -12 }],
+  },
+  FirstInputPassword: {
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.75,
+    color: "white",
+    marginBottom: 10,
+    padding: 5,
+    borderRadius: 5,
+    borderColor: "gray",
+    borderBottomWidth: 1,
+    position:"relative"
+  },
+  errorText: {
+    color: "red",
+    paddingBottom: 5,
+    fontSize:11
+  },
+  contInpError:{
+    flexDirection: "column",
+  }
 });
 
 export default NewSignUp;
