@@ -3,6 +3,7 @@
 # dependencies
 node_modules/
 package.json
+.yarn
 
 # Expo
 .expo/
