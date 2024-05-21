@@ -315,7 +315,7 @@ const NewLogin = () => {
                 <View style={styles.resendContainer}>
                   <TouchableOpacity
                     style={styles.resendBtnContainer}
-                    onPress={() => navigation.navigate("EmailAccount")}
+                    onPress={() => {navigation.navigate("EmailAccount");setEmail("");setPassword("")}}
                   >
                     <Text style={styles.resendText}>Forgot password</Text>
                   </TouchableOpacity>

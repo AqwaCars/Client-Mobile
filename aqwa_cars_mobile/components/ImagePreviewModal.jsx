@@ -16,10 +16,12 @@ import Toast from "react-native-toast-message";
 
 const { width, height } = Dimensions.get("window");
 
-const ImagePreviewModal = ({ visible, imageUri, onConfirm, onRetake,portait }) => {
+const ImagePreviewModal = ({ visible, imageUri, onConfirm, onRetake,portait,cloudinaryUpload }) => {
   const [faceDetected, setFaceDetected] = useState(false);
   const [documentDetected, setDocumentDetected] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  
 
   const analyzeImage = async () => {
     try {
@@ -33,7 +35,7 @@ const ImagePreviewModal = ({ visible, imageUri, onConfirm, onRetake,portait }) =
         return;
       }
 
-      const apiKey = "AIzaSyB3NJmybh9GTPr69POFvJ7RdA_hVK2GHFw"; // Replace with your actual API key
+      const apiKey = "AIzaSyB3NJmybh9GTPr69POFvJ7RdA_hVK2GHFw"; 
       const apiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
       const base64ImageData = await FileSystem.readAsStringAsync(imageUri, {
         encoding: FileSystem.EncodingType.Base64,
@@ -57,37 +59,30 @@ const ImagePreviewModal = ({ visible, imageUri, onConfirm, onRetake,portait }) =
       const responses = apiResponse.data.responses[0];
       console.log("API Response:", responses);
 
-      // Proceed with face and text detection
       const faces = responses.faceAnnotations || [];
       const texts = responses.textAnnotations || [];
 
-      // Filter faces based on confidence score
       const highConfidenceFaces = faces.filter((face) => face.detectionConfidence >= 0.95);
 
-      // Check if there are high confidence faces detected
       const hasHighConfidenceFace = highConfidenceFaces.length === 1;
 
-      // Check for high confidence text detection
       const highConfidenceTexts = texts.filter((text) => text.description.trim().length > 0);
 
-      // Check if there are high confidence texts detected
       const hasHighConfidenceText = highConfidenceTexts.length > 0;
 
-      // Check if the detected text contains numbers
       const hasNumbers = texts.some((text) => /[0-9]/.test(text.description));
 
-      // Check if the detected text is not human handwriting
       const isNotHumanWriting = texts.every((text) => isMachineWritten(text));
 
-      // Check if the detected face is likely a photo
       const isFacePhoto = faces.some((face) => face.headwearLikelihood === "VERY_UNLIKELY");
 
-      const isValidDocument = faces === 1 &&  hasHighConfidenceFace && hasHighConfidenceText && hasNumbers && isNotHumanWriting && isFacePhoto;
+      const isValidDocument = faces.length === 1 &&  hasHighConfidenceFace && hasHighConfidenceText && hasNumbers && isNotHumanWriting && isFacePhoto;
 
       setFaceDetected(hasHighConfidenceFace);
       setDocumentDetected(hasHighConfidenceText && hasNumbers && isNotHumanWriting && isFacePhoto);
 
       if (isValidDocument) {
+        // cloudinaryUpload(imageUri,"user_images")
         onConfirm();
         Toast.show({
           type: "success",
@@ -121,7 +116,7 @@ const ImagePreviewModal = ({ visible, imageUri, onConfirm, onRetake,portait }) =
         return;
       }
   
-      const apiKey = "AIzaSyB3NJmybh9GTPr69POFvJ7RdA_hVK2GHFw"; // Replace with your actual API key
+      const apiKey = "AIzaSyB3NJmybh9GTPr69POFvJ7RdA_hVK2GHFw"; 
       const apiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
       const base64ImageData = await FileSystem.readAsStringAsync(imageUri, {
         encoding: FileSystem.EncodingType.Base64,
@@ -134,8 +129,8 @@ const ImagePreviewModal = ({ visible, imageUri, onConfirm, onRetake,portait }) =
               content: base64ImageData,
             },
             features: [
-              { type: "FACE_DETECTION" }, // Face detection
-              { type: "TEXT_DETECTION" }, // Text detection
+              { type: "FACE_DETECTION" }, 
+              { type: "TEXT_DETECTION" }, 
             ],
           },
         ],
@@ -145,25 +140,18 @@ const ImagePreviewModal = ({ visible, imageUri, onConfirm, onRetake,portait }) =
       const responses = apiResponse.data.responses[0];
       console.log("API Response (Face and Text Detection):", responses);
   
-      // Proceed with face detection
       const faces = responses.faceAnnotations || [];
   
-      // Check if there are faces detected
       const hasFaces = faces.length > 0;
   
-      // Proceed with text detection
       const texts = responses.textAnnotations || [];
   
-      // Check for high confidence text detection
       const highConfidenceTexts = texts.filter((text) => text.description.trim().length > 0);
   
-      // Check if there are high confidence texts detected
       const hasHighConfidenceText = highConfidenceTexts.length > 0;
   
-      // Check if the detected text contains numbers
       const hasNumbers = texts.some((text) => /[0-9]/.test(text.description));
   
-      // Check if the detected text is not human handwriting
       const isNotHumanWriting = texts.every((text) => isMachineWritten(text));
   
       const isValidDocument = !hasFaces && hasHighConfidenceText && hasNumbers && isNotHumanWriting;
@@ -172,6 +160,7 @@ const ImagePreviewModal = ({ visible, imageUri, onConfirm, onRetake,portait }) =
   
       if (isValidDocument) {
         onConfirm();
+        // cloudinaryUpload(imageUri,"user_images")
         Toast.show({
           type: "success",
           text1: "Success",
@@ -235,13 +224,14 @@ const ImagePreviewModal = ({ visible, imageUri, onConfirm, onRetake,portait }) =
   
       const isFacePhoto = faces.some((face) => face.headwearLikelihood === "VERY_UNLIKELY");
   
-      const isValidDocument = faces === 1 && hasHighConfidenceFace && isFacePhoto;
+      const isValidDocument = faces.length === 1 && hasHighConfidenceFace && isFacePhoto;
   
       setFaceDetected(hasHighConfidenceFace);
       setDocumentDetected(isValidDocument);
   
       if (isValidDocument) {
         onConfirm();
+        // cloudinaryUpload(imageUri,"user_images")
         Toast.show({
           type: "success",
           text1: "Success",

@@ -18,6 +18,7 @@ import {
   Linking,
   Image as RNImage,
   ActivityIndicator,
+  Platform
 } from "react-native";
 
 import { showToast } from "./../Helpers.js";
@@ -79,7 +80,9 @@ const NewSignUp = () => {
     frontCardId: "",
     backCardId: "",
   });
+
   console.log("piiiiiics", picsDetail);
+  console.log("AAAAAAAAcs", userDetails);
   const [date, setDate] = useState(new Date());
   const [dateNow, setDateNow] = useState(new Date());
   const [show, setShow] = useState(false);
@@ -104,41 +107,97 @@ const NewSignUp = () => {
 
   
 
-const cloudinaryUpload = async (imageUri, folderName) => {
+
+
+
+// const cloudinaryUpload = async (imageUri, folderName) => {
+//   const cloudName = "dl9cp8cwq";
+//   const myUploadPreset = "aqwa_cars";
+
+//   try {
+//     const formData = new FormData();
+//     formData.append("file", {
+//       uri: Platform.OS === 'android'? imageUri : imageUri.replace('file://', ''), 
+//       type: "image/jpeg",
+//       name: "my_image.jpg",
+//     });
+//     formData.append("upload_preset", myUploadPreset);
+
+//     // Append the folder name to the formData if it exists
+//     if (folderName) {
+//       formData.append("folder", folderName);
+//     }
+
+//     const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+//       method: 'POST',
+//       body: formData,
+//       headers: {
+//         'Content-Type': 'multipart/form-data',
+//       },
+//     });
+
+//     if (response.ok) {
+//       const responseData = await response.json();
+//       console.log("Full response from Cloudinary:", responseData);
+//       // await setPicsDetails({...picsDetail, [portait]: responseData.secure_url });
+//       // await setShowImageModal(false);
+//       // await setIsCameraVisible(false);
+//       // await setCapturedImage("");
+//       return responseData.secure_url;
+//     } else {
+//       console.error("Image upload failed");
+//     }
+//   } catch (error) {
+//     console.log("Full response from Cloudinary:", error.message);
+//     console.error("Cloudinary upload error:", JSON.stringify(error));
+//   }
+// };
+
+const cloudinaryUpload = async (imageUri, folderName, field) => {
   const cloudName = "dl9cp8cwq";
   const myUploadPreset = "aqwa_cars";
 
   try {
     const formData = new FormData();
+    const uri = Platform.OS === 'android' ? imageUri : imageUri.replace('file://', '');
+
     formData.append("file", {
-      uri: imageUri,
-      type: "image/jpeg", 
+      uri: uri,
+      type: "image/jpeg",
       name: "my_image.jpg",
     });
     formData.append("upload_preset", myUploadPreset);
 
-    // Append the folder name to the formData if it exists
     if (folderName) {
-      formData.append("folder", "user_images");
+      formData.append("folder", folderName);
     }
 
-    const response = await axios.post(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      formData
-    );
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
 
-    if (response.status === 200) {
-      console.log("Full response from Cloudinary:", response.data);
-      return response.data.secure_url;
+    if (response.ok) {
+      const responseData = await response.json();
+      console.log("Full response from Cloudinary:", responseData);
+      return { field, url: responseData.secure_url };
     } else {
-      console.error("Image upload failed");
+      const errorResponse = await response.json();
+      console.error("Image upload failed", errorResponse);
+      throw new Error("Image upload failed");
     }
-    
   } catch (error) {
     console.log("Full response from Cloudinary:", error.message);
     console.error("Cloudinary upload error:", JSON.stringify(error));
+    throw error;
   }
 };
+
+
+
 
   const validatePassword = () => {
     let error = "";
@@ -205,13 +264,7 @@ const cloudinaryUpload = async (imageUri, folderName) => {
       setIsValid(false);
     }
   };
-
-  const handleCountryCodeChange = (c) => {
-    setCountryCode(c.cca2);
-    setCallingCode(`+${c.callingCode[0]}`);
-    setCountryName(c.name);
-  };
-
+  
   const formatPhoneNumber = (text) => {
     try {
       const phoneNumberObj = parsePhoneNumberFromString(text, countryCode);
@@ -222,18 +275,32 @@ const cloudinaryUpload = async (imageUri, folderName) => {
       setIsValid(false);
     }
   };
-console.log(userDetails.phone);
+  const handlePhoneNumberChange = (text) => {
+    formatPhoneNumber(text);
+  };
+  
+  const handleCountryCodeChange = (c) => {
+    setCountryCode(c.cca2);
+    setCallingCode(`+${c.callingCode[0]}`);
+    setCountryName(c.name);
+  };
+  
   useEffect(() => {
     validatePhoneNumber(phoneNumber, countryCode);
-    if(callingCode && phoneNumber && isValid){
-
-      setUserDetails({ ...userDetails, phone: `${callingCode} ${phoneNumber}` });
-    }else{
-      setUserDetails({ ...userDetails, phone:"" });
-
-    } 
-
-  }, [phoneNumber, countryCode]);
+    if (callingCode && phoneNumber && isValid) {
+      setUserDetails(prevDetails => ({
+        ...prevDetails,
+        phone: `${callingCode} ${phoneNumber}`,
+      }));
+    } else {
+      setUserDetails(prevDetails => ({
+        ...prevDetails,
+        phone: "",
+      }));
+    }
+  }, [phoneNumber, countryCode, isValid]);
+  
+  console.log(phoneNumber);
 
   const userEmail = (value) => {
     dispatch(saveEmailForgot(value));
@@ -345,9 +412,31 @@ console.log(userDetails.phone);
   }, []);
 
   const SignUpHandle = async () => {
-    setLoading(true); // Start loader
-
+    setLoading(true);
+  
     try {
+      const imagesToUpload = [
+        { uri: picsDetail.selfie, field: "selfie" },
+        { uri: picsDetail.license, field: "license" },
+        { uri: picsDetail.backLicense, field: "backLicense" },
+        { uri: picsDetail.frontCardId, field: "frontCardId" },
+        { uri: picsDetail.backCardId, field: "backCardId" },
+        ...(picsDetail.passport ? [{ uri: picsDetail.passport, field: "passport" }] : []),
+      ];
+  
+      const uploadPromises = imagesToUpload.map(image =>
+        cloudinaryUpload(image.uri, "user_images", image.field)
+      );
+  
+      const uploadResults = await Promise.all(uploadPromises);
+  
+      const updatedPicsDetails = uploadResults.reduce((acc, { field, url }) => {
+        acc[field] = url;
+        return acc;
+      }, {});
+  
+      setPicsDetails(updatedPicsDetails);
+  
       const response = await axios.post(
         `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/SignUpUser`,
         {
@@ -357,13 +446,15 @@ console.log(userDetails.phone);
           confirmPassword: userDetails.confirmPassword,
           email: userDetails.email,
           dateOfBirth: userDetails.dateOfBirth,
-          selfie: picsDetail.selfie,
-          drivingLicenseFront: picsDetail.license,
-          drivingLicenseBack: picsDetail.backLicense,
-          passport: picsDetail.passport,
+          selfie: updatedPicsDetails.selfie,
+          drivingLicenseFront: updatedPicsDetails.license,
+          drivingLicenseBack: updatedPicsDetails.backLicense,
+          passport: updatedPicsDetails.passport,
+          cardIdFront: updatedPicsDetails.frontCardId,
+          cardIdBack: updatedPicsDetails.backCardId
         }
       );
-
+  
       if (response.status === 201) {
         Toast.show({
           type: "success",
@@ -383,17 +474,13 @@ console.log(userDetails.phone);
           Toast.show({
             type: "error",
             text1: "Error",
-            text2:
-              error.response.data.error ||
-              "Conflict occurred. Please try again.",
+            text2: error.response.data.error || "Conflict occurred. Please try again.",
           });
         } else if (status === 422) {
           Toast.show({
             type: "error",
             text1: "Error",
-            text2:
-              error.response.data.error ||
-              "Validation error. Please check your input.",
+            text2: error.response.data.error || "Validation error. Please check your input.",
           });
         } else {
           Toast.show({
@@ -402,19 +489,19 @@ console.log(userDetails.phone);
             text2: "An unexpected error occurred. Please try again.",
           });
         }
-        // console.error("Error registering user:", error.response.data.error);
       } else {
         Toast.show({
           type: "error",
           text1: "Error",
           text2: "Network error. Please try again.",
         });
-        // console.error("Network error:", error);
       }
     } finally {
       setLoading(false);
     }
   };
+  
+  
 
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -457,12 +544,17 @@ console.log(userDetails.phone);
     }
   };
 
-  const handleConfirmImage = () => {
-    setPicsDetails({ ...picsDetail, [portait]: capturedImage });
+  const handleConfirmImage = async () => {
+    await setPicsDetails({ ...picsDetail, [portait]: capturedImage });
     console.log("Image confirmed:", capturedImage);
-    setShowImageModal(false);
-    setIsCameraVisible(false);
-    setCapturedImage("");
+    await setShowImageModal(false);
+    await setIsCameraVisible(false);
+    await setCapturedImage("");
+  //  await  setTimeout(() => {
+  //     if (flatListRef.current) {
+  //       flatListRef.current.scrollToIndex({ animated: true, index: 1 });
+  //     }
+  //   }, 100)
   };
 
   const handleRetakePicture = () => {
@@ -481,13 +573,30 @@ console.log(userDetails.phone);
     loadFonts();
   }, []);
 
+  // function isFormComplete(userDetails, picsDetail) {
+  //   return (
+  //     Object.values(userDetails).length === 6 &&
+  //     Object.values(picsDetail).length === 6 &&
+  //     Object.values(userDetails).every((value) => value !== "") &&
+  //     Object.values(picsDetail).every((value) => value !== "")
+  //   );
+  // }
+
   function isFormComplete(userDetails, picsDetail) {
-    return (
+    const userDetailsComplete =
       Object.values(userDetails).length === 6 &&
-      Object.values(picsDetail).length === 6 &&
-      Object.values(userDetails).every((value) => value !== "") &&
-      Object.values(picsDetail).every((value) => value !== "")
-    );
+      Object.values(userDetails).every((value) => value !== "");
+  
+    const picsDetailComplete =
+      Object.entries(picsDetail).length === 6 &&
+      Object.entries(picsDetail).every(([key, value]) => {
+        if (key === "passport") {
+          return true
+        }
+        return value !== "";
+      });
+  
+    return userDetailsComplete && picsDetailComplete;
   }
 
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -581,7 +690,7 @@ console.log(userDetails.phone);
               >
                 <TextInput
                   style={styles.FirstInput}
-                  placeholder="Username"
+                  placeholder="Full Name"
                   placeholderTextColor={"#cccccc"}
                   onChangeText={(text) => handleUserChange("name", text)}
                   value={userDetails.name}
@@ -626,7 +735,7 @@ console.log(userDetails.phone);
                       style={styles.FirstInputPhone}
                       onChangeText={(text) => {
                         setPhoneNumber(text);
-                        formatPhoneNumber(text);
+                        handlePhoneNumberChange(text);
                       }}
                       value={phoneNumber}
                       placeholder="Enter your phone number"
@@ -902,7 +1011,7 @@ console.log(userDetails.phone);
                   <TextInput
                     style={[
                       styles.input,
-                      { opacity: picsDetail.license ? 0.5 : 1 },
+                      { opacity: picsDetail.frontCardId ? 0.5 : 1 },
                     ]}
                     placeholder={
                       picsDetail.frontCardId
@@ -913,7 +1022,7 @@ console.log(userDetails.phone);
                     // keyboardType="email-address"
                     editable={false} // Make the TextInput not editable
                   />
-                  {!picsDetail.license && (
+                  {!picsDetail.frontCardId && (
                     <Text
                       style={{
                         color: "white",
@@ -944,7 +1053,7 @@ console.log(userDetails.phone);
                   <TextInput
                     style={[
                       styles.input,
-                      { opacity: picsDetail.backLicense ? 0.5 : 1 },
+                      { opacity: picsDetail.backCardId ? 0.5 : 1 },
                     ]}
                     placeholder={
                       picsDetail.backCardId
@@ -955,7 +1064,7 @@ console.log(userDetails.phone);
                     // keyboardType="email-address"
                     editable={false} // Make the TextInput not editable
                   />
-                  {!picsDetail.backLicense && (
+                  {!picsDetail.backCardId && (
                     <Text
                       style={{
                         color: "white",
@@ -1109,6 +1218,7 @@ console.log(userDetails.phone);
                 onConfirm={handleConfirmImage}
                 onRetake={handleRetakePicture}
                 portait={portait}
+                // cloudinaryUpload={cloudinaryUpload}
               />
             )}
             <TouchableOpacity

@@ -55,9 +55,9 @@ const NewHome = () => {
         console.log('No token found');
         const tok =await AsyncStorage.removeItem("token");
         const id = await AsyncStorage.removeItem("userId");
-        console.log('prrrrr',id,tok)
         await setLoginData(false);
-        // await navigation.navigate("newLogIn");
+        console.log('prrrrr',id,tok)
+        // await navigation.navigate("Welcome");
       } else {
         try {
           const response = await axios.post(`http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/VerifyUser`, { token });
@@ -71,7 +71,7 @@ const NewHome = () => {
               await AsyncStorage.removeItem("token");
               await AsyncStorage.removeItem("userId");
               await setLoginData(false);
-              // await navigation.navigate("newLogIn");
+              await navigation.navigate("Welcome");
             }
           } else {
             Toast.show({

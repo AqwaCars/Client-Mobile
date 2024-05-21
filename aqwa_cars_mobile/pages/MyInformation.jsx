@@ -4,13 +4,28 @@ import ArrowBack from '../assets/Svg/blackArrow.svg';
 import UnderlinedInputs from '../components/UnderlinedInputs';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import axios  from 'axios';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { height, width } = Dimensions.get("screen");
 
 const MyInformation = () => {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const navigation = useNavigation()
-
+console.log(currentPassword,newPassword,confirmNewPassword);
   const [modalVisible, setModalVisible] = useState(false);
+
+ const changeCurrentPassword = (e)=>{
+    setCurrentPassword(e)
+  }
+ const changeNewPassword = (e)=>{
+    setNewPassword(e)
+  }
+ const changeConfirmNewPassword = (e)=>{
+    setConfirmNewPassword(e)
+  }
 
   const handleDeleteAccount = () => {
     setModalVisible(true);
@@ -24,6 +39,56 @@ const MyInformation = () => {
     setModalVisible(false);
   };
 
+  const verifyChangePassword = async () => {
+    const id = await AsyncStorage.getItem("userId");
+  
+    try {
+      const response = await axios.post(`http://${appConfig.PUBLIC_SERVER_IP}:5000/api/users/changePasswordCRMVerif`, {
+        id,
+        currentPassword,
+        newPassword,
+        confirmPassword: confirmNewPassword,
+      });
+  
+      if (response.status === 200) {
+        console.log(response.data.message);
+        return;
+      }
+    } catch (error) {
+      if (error.response) {
+        const { status, data } = error.response;
+  
+        if (status === 422 && data.error === 'New password and confirm password do not match') {
+          Toast.show({
+            type: 'error',
+            text1: data.error,
+          });
+        } else if (status === 422 && data.error === 'Current password is incorrect') {
+          Toast.show({
+            type: 'error',
+            text1: data.error,
+          });
+        } else if (status === 422 && data.error === 'New password must be different from current password') {
+          Toast.show({
+            type: 'error',
+            text1: data.error,
+          });
+        } else {
+          Toast.show({
+            type: 'error',
+            text1: 'An error occurred. Please try again later.',
+          });
+        }
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'An error occurred. Please check your network connection and try again.',
+        });
+      }
+    }
+  };
+  
+
   return (
     <View style={{ flex: 1, backgroundColor: 'white', paddingBottom: height * 0.05 }}>
       
@@ -34,7 +99,7 @@ const MyInformation = () => {
       <ScrollView>
         <View style={styles.container}>
           <Text style={styles.title}>My information</Text>
-          <UnderlinedInputs />
+          <UnderlinedInputs changeConfirmNewPassword={changeConfirmNewPassword} changeNewPassword={changeNewPassword} changeCurrentPassword={changeCurrentPassword} currentPassword={currentPassword} newPassword={newPassword} confirmNewPassword={confirmNewPassword} />
         </View>
       </ScrollView>
       <Pressable onPress={handleDeleteAccount} android_ripple={{ color: 'transparent' }}>
