@@ -3,7 +3,7 @@ import { View, TextInput, StyleSheet,Dimensions, Image, Text } from 'react-nativ
 import Tunisia from '../assets/Svg/Tunisia.svg';
 const { height, width } = Dimensions.get("screen");
 
-const PhoneInput = () => {
+const PhoneInput = ({phoneNumber}) => {
   return (
     <View style={styles.phoneInput}>
       <View style={styles.flagContainer}>
@@ -14,7 +14,9 @@ const PhoneInput = () => {
         style={styles.input}
         keyboardType="phone-pad"
         placeholder="Phone Number"
-        maxLength={8} // Excluding country code
+        maxLength={8}
+        value={phoneNumber}
+        editable={false}
       />
     </View>
   );
@@ -25,10 +27,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderColor: '#ccc',
+    backgroundColor:'#EAECF0',
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 10,
-    height: 40,
+    height: height*0.06,
   },
   flagContainer: {
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { StyleSheet, Text, View, Dimensions, Image, Platform, TextInput, TouchableOpacity, ImageBackground, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import Modal from 'react-native-modal';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,53 +7,51 @@ import NavBar from '../components/NavBar';
 import { Calendar } from 'react-native-calendars';
 import ModalFooter from '../components/ModalFooter';
 import { useNavigation } from '@react-navigation/native';
-import { CurrentTime, IsFocused, LocationModalVisible, LocationRedux, MarkedDates, ModalVisible, Predictions, ReturnLocation, ReturnModalVisible, ReturnPredictions, ShowAdditionalRow, finishDate, setIsFocused, setLocation, setLocationModalVisible, setMarkedDates, setModalVisible, setPredictions, setReturnLocation, setReturnModalVisible, setReturnPrediction, setSelectedFinishDate, setSelectedStartDate, setShowAdditionalRow, startDate,getAllCarByDate } from '../store/bookingSlice'
 import { useDispatch, useSelector } from 'react-redux';
-import axios from 'axios'
+import axios from 'axios';
 import * as Location from 'expo-location';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {LoginContext} from '../context/AuthContext.jsx'
+import { LoginContext } from '../context/AuthContext.jsx';
+import {
+  CurrentTime, IsFocused, LocationModalVisible, LocationRedux, MarkedDates, ModalVisible, Predictions, ReturnLocation, ReturnModalVisible, ReturnPredictions, ShowAdditionalRow, finishDate, setIsFocused, setLocation, setLocationModalVisible, setMarkedDates, setModalVisible, setPredictions, setReturnLocation, setReturnModalVisible, setReturnPrediction, setSelectedFinishDate, setSelectedStartDate, setShowAdditionalRow, startDate, getAllCarByDate
+} from '../store/bookingSlice';
+import Toast from 'react-native-toast-message';
+import AdBanner from '../components/AdBanner.jsx';
 
 const { width, height } = Dimensions.get("window");
-const backgroundHeight = Platform.OS === 'android' ? height * 0.59 : height * 0.55;
-
+const backgroundHeight = Platform.OS === 'android' ? height * 0.59 : height * 0.6;
 
 const NewHome = () => {
   const { logindata, setLoginData } = useContext(LoginContext);
-
-
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const modalVisible = useSelector(ModalVisible)
-  const returnModalVisible = useSelector(ReturnModalVisible)
-  const location = useSelector(LocationRedux)
-  const returnLocation = useSelector(ReturnLocation)
-  const predictions = useSelector(Predictions)
-  const returnPredictions = useSelector(ReturnPredictions)
-  const selectedStartDate = useSelector(startDate)
-  const selectedFinishDate = useSelector(finishDate)
-  const currentTime = useSelector(CurrentTime)
-  const showAdditionalRow = useSelector(ShowAdditionalRow)
-  const markedDates = useSelector(MarkedDates)
-  const locationModalVisible = useSelector(LocationModalVisible)
-  const isFocused = useSelector(IsFocused)
-  const [loading, setLoading] = useState('')
+  const modalVisible = useSelector(ModalVisible);
+  const returnModalVisible = useSelector(ReturnModalVisible);
+  const location = useSelector(LocationRedux);
+  const returnLocation = useSelector(ReturnLocation);
+  const predictions = useSelector(Predictions);
+  const returnPredictions = useSelector(ReturnPredictions);
+  const selectedStartDate = useSelector(startDate);
+  const selectedFinishDate = useSelector(finishDate);
+  const currentTime = useSelector(CurrentTime);
+  const showAdditionalRow = useSelector(ShowAdditionalRow);
+  const markedDates = useSelector(MarkedDates);
+  const locationModalVisible = useSelector(LocationModalVisible);
+  const isFocused = useSelector(IsFocused);
+  const [loading, setLoading] = useState('');
   const [locationExists, setLocationExists] = useState(true);
- 
   const [disabledDates, setDisabledDates] = useState({});
   const [errorMsg, setErrorMsg] = useState(null);
-  const [loadingValidate,setLoadingValidate]=useState(false)
-
-  console.log('skrrrrrt7',logindata)
+  const [loadingValidate, setLoadingValidate] = useState(false);
 
   useEffect(() => {
     const verifyUser = async () => {
       setLoadingValidate(true);
-  
+
       const token = await AsyncStorage.getItem("token");
       if (!token) {
         console.log('No token found');
-        const tok =await AsyncStorage.removeItem("token");
+        const tok = await AsyncStorage.removeItem("token");
         const id = await AsyncStorage.removeItem("userId");
         await setLoginData(false);
         console.log('prrrrr',id,tok)
@@ -79,17 +77,41 @@ const NewHome = () => {
               text1: 'Error',
               text2: 'Internal server error',
             });
-            
+
             setLoadingValidate(false);
           }
         }
       }
-  
-      setLoadingValidate(false); 
+
+      setLoadingValidate(false);
     };
-  
+
     verifyUser();
   }, []);
+
+  useEffect(() => {
+    setDisabledDates(disablePastDates());
+    initializeDates();
+  }, []);
+
+  const initializeDates = () => {
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+
+    const todayString = today.toISOString().split('T')[0];
+    const tomorrowString = tomorrow.toISOString().split('T')[0];
+
+    dispatch(setSelectedStartDate(todayString));
+    dispatch(setSelectedFinishDate(tomorrowString));
+
+    const initialMarkedDates = {
+      [todayString]: { startingDay: true, selected: true, color: '#8c52ff', textColor: 'white' },
+      [tomorrowString]: { endingDay: true, selected: true, color: '#8c52ff', textColor: 'white' }
+    };
+
+    dispatch(setMarkedDates(initialMarkedDates));
+  };
 
   const calendarTheme = {
     backgroundColor: '#ffffff',
@@ -99,6 +121,7 @@ const NewHome = () => {
     todayTextColor: '#8c52ff',
     arrowColor: '#8c52ff',
   };
+
   const disablePastDates = () => {
     const today = new Date();
     const disabledDates = {};
@@ -113,52 +136,45 @@ const NewHome = () => {
   };
 
   const onDayPress = (day) => {
-    const selectedDate = new Date(day.dateString);
-    const today = new Date();
-
-    if (selectedDate < today) {
-      return;
-    }
-    if (!selectedStartDate || selectedDate < new Date(selectedStartDate)) {
+    if (!selectedStartDate || (selectedStartDate && selectedFinishDate)) {
+      // If no start date or both dates are already selected, reset and set start date
       dispatch(setSelectedStartDate(day.dateString));
       dispatch(setSelectedFinishDate(null));
-      dispatch(setMarkedDates({
-        [day.dateString]: { startingDay: true, selected: true, color: '#8c52ff', textColor: 'white' },
-      }));
-    } else if (!selectedFinishDate || selectedDate > new Date(selectedFinishDate)) {
-      dispatch(setSelectedFinishDate(day.dateString));
-      dispatch(setMarkedDates({
-        ...markedDates,
-        [day.dateString]: { endingDay: true, selected: true, color: '#8c52ff', textColor: 'white' },
-      }));
-      const startDate = new Date(selectedStartDate);
-      const finishDate = new Date(day.dateString);
-      const datesToMark = {};
-      const currentDate = new Date(startDate);
-      while (currentDate <= finishDate) {
-        const dateString = currentDate.toISOString().split('T')[0];
-        if (dateString !== selectedStartDate && dateString !== day.dateString) {
-          datesToMark[dateString] = { color: '#8c52ff', textColor: 'white' };
-        } else if (dateString === selectedStartDate) {
-          datesToMark[dateString] = { startingDay: true, selected: true, color: '#8c52ff', textColor: 'white' };
-        } else if (dateString === day.dateString) {
-          datesToMark[dateString] = { endingDay: true, selected: true, color: '#8c52ff', textColor: 'white' };
-        }
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      dispatch(setMarkedDates({ ...markedDates, ...datesToMark }));
     } else {
-      dispatch(setSelectedStartDate(null));
-      dispatch(setSelectedFinishDate(null));
-      dispatch(setMarkedDates({}));
+      // If start date is selected, set finish date
+      if (new Date(day.dateString) < new Date(selectedStartDate)) {
+        // If the selected finish date is before the start date, swap them
+        dispatch(setSelectedFinishDate(selectedStartDate));
+        dispatch(setSelectedStartDate(day.dateString));
+      } else {
+        dispatch(setSelectedFinishDate(day.dateString));
+      }
     }
   };
-
+  
+  
+  // useEffect(() => {
+  //   const today = new Date();
+  //   const tomorrow = new Date(today);
+  //   tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  //   const todayString = today.toISOString().split('T')[0];
+  //   const tomorrowString = tomorrow.toISOString().split('T')[0];
+  
+  //   dispatch(setSelectedStartDate(todayString));
+  //   dispatch(setSelectedFinishDate(tomorrowString));
+  
+  //   const initialMarkedDates = {
+  //     [todayString]: { startingDay: true, selected: true, color: '#8c52ff', textColor: 'white' },
+  //     [tomorrowString]: { endingDay: true, selected: true, color: '#8c52ff', textColor: 'white' }
+  //   };
+  
+  //   dispatch(setMarkedDates(initialMarkedDates));
+  // }, []);
 
   const openModal = () => {
-    dispatch(setModalVisible(true))
-  }
-
+    dispatch(setModalVisible(true));
+  };
 
   const fetchAvailableCars = async () => {
     try {
@@ -184,8 +200,17 @@ const NewHome = () => {
       setLocationExists(false);
       return;
     }
+    if (!selectedFinishDate) {
+      Toast.show({
+        type: 'info',
+        text1: 'Select Return Date',
+        text2: 'Please select a return date to continue.',
+      });
+      return;
+    }
     fetchAvailableCars();
   };
+
   const fetchLocations = async (searchText) => {
     try {
       setLoading(true);
@@ -193,7 +218,7 @@ const NewHome = () => {
         `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${searchText}&components=country:tn&key=${process.env.EXPO_PUBLIC_SERVER_IP_2}`
       );
       dispatch(setPredictions(response.data.predictions));
-      dispatch(setReturnPrediction(response.data.predictions))
+      dispatch(setReturnPrediction(response.data.predictions));
 
     } catch (error) {
       console.error('Error fetching locations:', error);
@@ -201,40 +226,40 @@ const NewHome = () => {
       setLoading(false);
     }
   };
+
   const handleChangeText = async (text) => {
-    setLocation(text);
+    dispatch(setLocation(text));
     if (text) {
       await fetchLocations(text);
     } else {
       dispatch(setPredictions([]));
     }
   };
+
   const handlePredictionPress = (item) => {
     console.log('Selected Location:', item);
 
-    dispatch(setLocation(item.description))
-    setLocationExists(true)
-    dispatch(setPredictions([]))
-    dispatch(setLocationModalVisible(false))
+    dispatch(setLocation(item.description));
+    setLocationExists(true);
+    dispatch(setPredictions([]));
+    dispatch(setLocationModalVisible(false));
   };
+
   const handleReturnChangeText = async (text) => {
-    setReturnLocation(String(text));
+    dispatch(setReturnLocation(String(text)));
     if (text) {
       await fetchLocations(text);
     } else {
       dispatch(setReturnPrediction([]));
     }
   };
+
   const handleReturnPredictionPress = (item) => {
     console.log('Selected Return Location:', item);
     dispatch(setReturnLocation(item.description));
     dispatch(setReturnPrediction([]));
     dispatch(setReturnModalVisible(false));
   };
-  useEffect(() => {
-    setDisabledDates(disablePastDates());
-  }, []);
-
 
   const getLocation = async () => {
     try {
@@ -265,17 +290,20 @@ const NewHome = () => {
       setLoading(false);
     }
   };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
+        
         <ImageBackground style={styles.background} source={require('../assets/Karhba.png')} resizeMode='cover'>
           <Image style={styles.logo} source={require('../assets/aqwaWhite.png')} />
+          <AdBanner/>
         </ImageBackground>
         <View style={styles.filterCardWrapper}>
           <View style={styles.filterCard}>
             <View style={styles.firstRow}>
               <Text style={styles.firstText}>Different return station</Text>
-              <ToggleSwitch isEnabled={showAdditionalRow} onToggle={()=>dispatch(setShowAdditionalRow(!showAdditionalRow))} />
+              <ToggleSwitch isEnabled={showAdditionalRow} onToggle={() => dispatch(setShowAdditionalRow(!showAdditionalRow))} />
             </View>
             <View>
               <Pressable
@@ -333,7 +361,9 @@ const NewHome = () => {
               </TouchableOpacity>
               {!logindata ? <Pressable onPress={() => navigation.navigate('Welcome')}>
                 <Text style={styles.secondText}>Sign in or create account</Text>
-              </Pressable> : null}
+              </Pressable> : <View style={{
+                height: height * 0.01
+              }}></View>}
             </View>
           </View>
         </View>
@@ -357,11 +387,13 @@ const NewHome = () => {
             onDayPress={onDayPress}
             markedDates={{
               ...disabledDates,
-              ...markedDates,
+              // ...markedDates,
             }}
             theme={calendarTheme}
+            markingType='period'
+
           />
-          <ModalFooter selectedStartDate={selectedStartDate} selectedFinishDate={selectedFinishDate} currentTime={currentTime} fetchAvailableCars={handleFindCars} setModalVisible={setModalVisible} />
+          <ModalFooter   fetchAvailableCars={handleFindCars} />
         </View>
       </Modal>
       <Modal
@@ -385,8 +417,8 @@ const NewHome = () => {
               <TouchableOpacity
                 style={styles.iconContainer}
                 onPress={() => {
-                  dispatch(setLocation(''))
-                  dispatch(setPredictions([]))
+                  dispatch(setLocation(''));
+                  dispatch(setPredictions([]));
                 }}
               >
                 <Ionicons name="close" size={20} color="black" style={styles.clearIcon} />
@@ -431,10 +463,10 @@ const NewHome = () => {
         swipeDirection={['down']}
         style={styles.modal}
         onSwipeComplete={() => {
-          dispatch(setReturnModalVisible(false))
+          dispatch(setReturnModalVisible(false));
         }}
         onBackdropPress={() => {
-          dispatch(setReturnModalVisible(false))
+          dispatch(setReturnModalVisible(false));
         }}
       >
         <View style={styles.modalContent2}>
@@ -451,8 +483,8 @@ const NewHome = () => {
               <TouchableOpacity
                 style={styles.iconContainer}
                 onPress={() => {
-                  dispatch(setReturnLocation(''))
-                  dispatch(setReturnPrediction([]))
+                  dispatch(setReturnLocation(''));
+                  dispatch(setReturnPrediction([]));
                 }}
               >
                 <Ionicons name="close" size={20} color="black" style={styles.clearIcon} />
@@ -484,11 +516,12 @@ const NewHome = () => {
           )}
         </View>
       </Modal>
-      {loadingValidate && ( 
-          <View style={styles.loaderValidate}>
-            <ActivityIndicator size="large" color="white" />
-          </View>
-        )}
+      {loadingValidate && (
+        <View style={styles.loaderValidate}>
+          <ActivityIndicator size="large" color="white" />
+        </View>
+      )}
+      
     </View>
   );
 }
@@ -511,12 +544,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     width: width * 1,
-    // gap:-500
   },
   filterCardWrapper: {
     flex: 1,
     position: 'absolute',
-    bottom: 60,
+    bottom: Platform.OS === 'android' ? 30 : 5,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
@@ -533,9 +565,7 @@ const styles = StyleSheet.create({
   },
   filterCard: {
     borderRadius: 20,
-    // borderWidth: 0.6,
     width: width * 1,
-    // height: height * 0.38,
     backgroundColor: 'white',
     ...Platform.select({
       ios: {
@@ -555,7 +585,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    // borderBottomWidth: 0.2,
     borderBottomColor: "grey"
   },
   secondRow: {
@@ -564,13 +593,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 5,
     marginBottom: height * -0.01,
-    // borderBottomWidth: 0.2,
     borderBottomColor: "grey",
     alignItems: "center"
   },
   thirdRow: {
     flexDirection: 'row',
-    // borderBottomWidth: 0.2,
     borderBottomColor: "grey",
   },
   date: {
@@ -580,7 +607,6 @@ const styles = StyleSheet.create({
     width: width * 0.65,
     height: height * 0.078,
     paddingLeft: 20,
-    // borderRightWidth: 0.2
   },
   time: {
     gap: 5,
@@ -628,7 +654,6 @@ const styles = StyleSheet.create({
   firstText: {
     fontSize: 15,
     fontWeight: '600',
-    // fontFamily:'leagueSpartan'
   },
   timeText: {
     fontSize: 13,
@@ -648,10 +673,8 @@ const styles = StyleSheet.create({
     height: height * 0.078,
     paddingHorizontal: width * 0.05,
     flexDirection: 'row',
-    // justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomColor: "grey",
-    // borderBottomWidth: 0.2,
   },
   additionalText: {
     fontSize: 15,
@@ -662,7 +685,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     bottom: height * 0.1,
   },
-
   prediction: {
     padding: 10,
     backgroundColor: '#f0f0f0',
@@ -712,7 +734,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 10,
     padding: 10,
-    // alignItems: 'center',
   },
   predictionText: {
     fontSize: 16,
@@ -721,7 +742,6 @@ const styles = StyleSheet.create({
   useLocationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    // backgroundColor: '#f0f0f0',
     borderBottomWidth: 0.2,
     borderRadius: 5,
     paddingVertical: height * 0.02,
@@ -749,5 +769,3 @@ const styles = StyleSheet.create({
   },
 });
 export default NewHome;
-
-

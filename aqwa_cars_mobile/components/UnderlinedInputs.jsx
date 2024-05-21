@@ -113,12 +113,24 @@ const UnderlinedInputs = ({ changeConfirmNewPassword, changeNewPassword, changeC
           <Text style={styles.title}>Name</Text>
           <View style={styles.inputWithIcon}>
             <Ionicons name="person-outline" size={24} color="black" style={styles.icon} />
-            <TextInput style={styles.input} placeholder="Enter your name" underlineColorAndroid="transparent" editable={false} />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your name"
+              underlineColorAndroid="transparent"
+              editable={false}
+              value={userData?.userName}
+            />
           </View>
           <Text style={styles.title}>Email</Text>
           <View style={styles.inputWithIcon}>
             <Ionicons name="mail-outline" size={24} color="black" style={styles.icon} />
-            <TextInput style={styles.input} placeholder="Enter your email address" underlineColorAndroid="transparent" editable={false} />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your email address"
+              underlineColorAndroid="transparent"
+              editable={false}
+              value={userData?.email}
+            />
           </View>
           <Text style={styles.note}>To update, please contact support.</Text>
         </View>

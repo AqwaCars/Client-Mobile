@@ -6,16 +6,10 @@ import store from "./store/store";
 import React,{ useContext } from "react";
 import { Provider, useDispatch } from "react-redux";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
-
-// const LazyComponent = lazy(() => import("./pages/Messages.jsx"));
-
 ("DO NOT TOUCH THIS IMPORT OR CHANGE ANYTHING ABOUT IT");
-
 import { StripeProvider } from "@stripe/stripe-react-native";
-
 import Welcome from "./pages/Welcome.jsx";
 import NewHome from "./pages/NewHome.jsx";
-// import CarsList from "./pages/CarsList.jsx";
 import NewCarDetails from "./pages/NewCarDetails.jsx";
 import NewSignUp from "./pages/NewSignUp.jsx";
 import NewLogIn from "./pages/NewLogIn.jsx"
@@ -33,7 +27,7 @@ import OtpForgotEmail from "./pages/OtpForgotEmail.jsx"
 import ChangePassword from "./pages/ChangePassword.jsx";
 import Toast from 'react-native-toast-message';
 import Context from "./context/AuthContext.jsx";
-
+import ReviewSheet from "./components/ReviewSheet.jsx";
 const Stack = createStackNavigator();
 
 function App() {
@@ -46,10 +40,15 @@ function App() {
       >
         
         <NavigationContainer>
-          <Stack.Navigator initialRouteName="NewHome">
+          <Stack.Navigator initialRouteName="ReviewSheet">
             <Stack.Screen
               name="CarsList"
               component={CarsList}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ReviewSheet"
+              component={ReviewSheet}
               options={{ headerShown: false }}
             />
              <Stack.Screen

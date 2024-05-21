@@ -1,4 +1,4 @@
-import React, { useState,useContext } from 'react';
+import React, { useState,useContext, useEffect } from 'react';
 import { View, StyleSheet, Text, Pressable, Dimensions, ScrollView, Image, ImageBackground, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import NavTab from '../components/NavBar';
@@ -6,12 +6,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import Toast from 'react-native-toast-message';
-import appConfig from "../appConfig";
 const { height, width } = Dimensions.get("screen");
 import {LoginContext} from "../context/AuthContext.jsx"
+import { useDispatch, useSelector } from 'react-redux';
+import { getOneById } from '../store/userSlice.js';
+
 const NewProfile = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+
   const [loading, setLoading] = useState(false);
+  const  [data,setData] = useState({})
   const { logindata,setLoginData } = useContext(LoginContext);
 
 
@@ -83,6 +88,24 @@ const NewProfile = () => {
     }
   };
 
+
+  const getUser = async () => {
+    try {
+      const Id = await AsyncStorage.getItem('userId');
+      console.log("chawchaw", Id);
+      const getData = await dispatch(getOneById(Id))
+      setData(getData.payload)
+    } catch (error) {
+      console.error("Error retrieving user ID:", error);
+    }
+  }
+
+  useEffect ( ()=>{
+    getUser()
+  },[])
+
+
+
   return (
     <View style={{ flex: 1 }}>
       {loading && <ActivityIndicator size="large" color="#0000ff" />}
@@ -94,7 +117,7 @@ const NewProfile = () => {
           <Image style={styles.logo} source={require('../assets/aqwaBlack.png')} />
           { logindata ? <View style={styles.secondRow}>
             <Text style={styles.title}>Hello,</Text>
-            <Text style={styles.title}>Wissem</Text>
+            <Text style={styles.title}>{data?.userName}</Text>
           </View> : <View style={styles.secondRow}>
             <Text style={styles.title}>Welcome,</Text>
             <Text style={styles.title}>To aqwa cars</Text>
@@ -106,7 +129,7 @@ const NewProfile = () => {
             <Ionicons name="calendar" size={25} color="black" />
             <Text style={styles.titleIcon}>Bookings</Text>
           </Pressable>
-          <Pressable style={styles.button} onPress={() => navigation.navigate('MyInformation')}>
+          <Pressable style={styles.button} onPress={() => navigation.navigate('MyInformation',{data})}>
             <Ionicons name="person" size={25} color="black" />
             <Text style={styles.titleIcon}>My Information</Text>
           </Pressable>
