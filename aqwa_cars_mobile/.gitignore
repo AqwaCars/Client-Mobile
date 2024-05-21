@@ -2,8 +2,6 @@
 
 # dependencies
 node_modules/
-package.json
-.yarn
 
 # Expo
 .expo/
@@ -25,7 +23,7 @@ web-build/
 npm-debug.*
 yarn-debug.*
 yarn-error.*
-yarn.lock
+
 # macOS
 .DS_Store
 *.pem
