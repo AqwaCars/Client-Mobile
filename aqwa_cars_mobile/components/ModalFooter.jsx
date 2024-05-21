@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, Dimensions, TouchableOpacity,ScrollView,Pressab
 import { Ionicons } from '@expo/vector-icons';
 import Modal from 'react-native-modal';
 const { width, height } = Dimensions.get("window");
-import { CurrentTime, IsFocused, LocationModalVisible, LocationRedux, MarkedDates, ModalVisible, Predictions, ReturnLocation, ReturnModalVisible, ReturnPredictions, ShowAdditionalRow, finishDate, setIsFocused, setLocation, setLocationModalVisible, setMarkedDates, setModalVisible, setPredictions, setReturnLocation, setReturnModalVisible, setReturnPrediction, setSelectedFinishDate, setSelectedStartDate, setShowAdditionalRow, startDate,getAllCarByDate, setCurrentTime } from '../store/bookingSlice'
+import { CurrentTime, ModalVisible, ReturnModalVisible, finishDate, setModalVisible, startDate, setCurrentTime } from '../store/bookingSlice'
 import { useDispatch, useSelector } from 'react-redux';
 
 
@@ -12,18 +12,14 @@ const ModalFooter = ({fetchAvailableCars}) => {
 
     const [modalFooterVisible, setModalFooterVisible] = useState(false);
     const modalVisible = useSelector(ModalVisible)
-    const returnModalVisible = useSelector(ReturnModalVisible)
-    const location = useSelector(LocationRedux)
-    const returnLocation = useSelector(ReturnLocation)
-    const predictions = useSelector(Predictions)
-    const returnPredictions = useSelector(ReturnPredictions)
     const selectedStartDate = useSelector(startDate)
     const selectedFinishDate = useSelector(finishDate)
     const currentTime = useSelector(CurrentTime)
-    const showAdditionalRow = useSelector(ShowAdditionalRow)
-    const markedDates = useSelector(MarkedDates)
-    const locationModalVisible = useSelector(LocationModalVisible)
-    const isFocused = useSelector(IsFocused)
+    useEffect(()=>{
+
+    },[dispatch,currentTime])
+    
+ 
 
 
 
@@ -39,8 +35,10 @@ const ModalFooter = ({fetchAvailableCars}) => {
       }
       
     
-      const handleTimeSelection = (time) => {
-        dispatch(setCurrentTime(time));
+      const handleTimeSelection =async(time) => {
+        
+        const timer = await dispatch(setCurrentTime(time));
+        console.log('after dispatch',timer.payload)
         setModalFooterVisible(false)
       };
       
@@ -54,10 +52,10 @@ const ModalFooter = ({fetchAvailableCars}) => {
       <View style={styles.filterCard}>
         <TouchableOpacity style={styles.row}>
           <View style={styles.date}>
-            <Text style={styles.dateText}>{`From ${selectedStartDate}`}</Text>
+          <Text style={styles.dateText}>{selectedStartDate ? `From ${selectedStartDate}` : 'Select start date'}</Text>
           </View>
           <View style={styles.date}>
-            <Text style={styles.dateText}>{`To ${selectedFinishDate}`}</Text>
+          <Text style={styles.dateText}>{selectedFinishDate ? `To ${selectedFinishDate}` : 'Select Finish date'}</Text>
           </View>
         </TouchableOpacity>
         <View style={styles.row}>
@@ -109,9 +107,7 @@ const ModalFooter = ({fetchAvailableCars}) => {
         </Pressable>
       ))}
       </ScrollView>
-        <TouchableOpacity style={styles.confirmButton}>
-            <Text style={styles.buttonText}>Confrim</Text>
-        </TouchableOpacity>
+
         </View>
       </Modal>
     </View>
@@ -137,13 +133,13 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
+    justifyContent: 'space-around',
     alignItems: 'center',
     marginBottom: 10,
   },
   date: {
     flexDirection: 'row',
-    marginRight:width*0.1
+    marginLeft:width*0.004
   },
   time: {
     flexDirection: 'row',
@@ -194,10 +190,11 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#8c52ff',
     borderRadius: 10,
-    padding: width*0.04,
-    marginVertical: height*0.009,
-    width: width*0.42,
+    // padding: width*0.04,
+    marginVertical: height*0.006,
+    width: width*0.4,
     alignItems: 'center',
+    justifyContent:'center',
     height:height*0.07
   },
   buttonText: {

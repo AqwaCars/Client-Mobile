@@ -1,13 +1,19 @@
 import { StyleSheet, Text, View, Pressable, Dimensions, ScrollView } from 'react-native'
 import React,{useState} from 'react'
 import ArrowBack from '../assets/Svg/blackArrow.svg'
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation,useRoute } from '@react-navigation/native';
 const { height, width } = Dimensions.get("screen");
 
 const TermsAndConditions = () => {
+
+  const route = useRoute()
   const navigation = useNavigation()
 
   const [isButtonEnabled, setButtonEnabled] = useState(false);
+
+  const total = route.params.total
+
+  console.log(total)
 
   const handleScroll = (event) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
@@ -69,9 +75,9 @@ const TermsAndConditions = () => {
       <View style={styles.footer}>
         <View style={styles.optionWrapper}>
           <Text style={styles.optionsTitle}>Total</Text>
-          <Text style={styles.optionsTitle}>1750 DT</Text>
+          <Text style={styles.optionsTitle}>{total} DT</Text>
         </View>
-        <Pressable style={[styles.find, { backgroundColor: isButtonEnabled ? 'black' : 'grey' }]} disabled={!isButtonEnabled} onPress={()=>navigation.navigate('ReviewAndBook')}>
+        <Pressable style={[styles.find, { backgroundColor: isButtonEnabled ? 'black' : 'grey' }]} disabled={!isButtonEnabled} onPress={()=>navigation.navigate('ReviewAndBook',{total:total})}>
           <Text style={styles.textButton}>Accept and Continue</Text>
         </Pressable>
       </View>

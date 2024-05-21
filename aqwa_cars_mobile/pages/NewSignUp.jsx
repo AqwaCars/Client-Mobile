@@ -48,8 +48,8 @@ const NewSignUp = () => {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [Ratio, setRatio] = useState(0);
   const [isCameraVisible, setIsCameraVisible] = useState(false);
-  // const [type, setType] = useState("");
-  // const [typeSelfie, setTypeSelfie] = useState("");
+  const [type, setType] = useState("");
+  const [typeSelfie, setTypeSelfie] = useState("");
   // const [type, setType] = useState(CameraPermissions.CameraType.back);
   // const [typeSelfie, setTypeSelfie] = useState(
   //   CameraPermissions.CameraType.front
@@ -61,11 +61,11 @@ const NewSignUp = () => {
   const [loading, setLoading] = useState(false);
 
   const [userDetails, setUserDetails] = useState({
-    name: "aymen",
-    phone: "556685",
-    email: "aymen@gmail.com",
-    password: "Azerty123 @",
-    confirmPassword: "Azerty123 @",
+    name: "",
+    phone: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
     dateOfBirth: "",
   });
   const [picsDetail, setPicsDetails] = useState({

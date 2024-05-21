@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef , useContext } from "react";
 import {
   Image,
   StyleSheet,
@@ -20,6 +20,7 @@ import back4 from "../assets/back4.png";
 import blackLogo from "../assets/aqwaBlack.png";
 import whiteLogo from "../assets/aqwaWhite.png";
 import { useNavigation } from "@react-navigation/native";
+import {LoginContext} from "../context/AuthContext.jsx"
 
 const { width, height } = Dimensions.get("screen");
 const Welcome = () => {
@@ -31,7 +32,9 @@ const Welcome = () => {
   const [logo, setLogo] = useState(whiteLogo);
   const navigation = useNavigation();
   const fadeAnim = useRef(new Animated.Value(1)).current; // Define fadeAnim using useRef
+  const { logindata,setLoginData } = useContext(LoginContext);
 
+  console.log('skkou skou ',logindata)
   useEffect(() => {
     const loadFonts = async () => {
       await Font.loadAsync({

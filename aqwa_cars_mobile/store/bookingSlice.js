@@ -24,7 +24,8 @@ const initialState = {
     returnModalVisible:false,
     showAdditionalRow:false,
     isFocused:false,
-    markedDates:[]
+    markedDates:[],
+    carId:null
   }
 };
 export const CreateBooking = createAsyncThunk(
@@ -188,10 +189,10 @@ const bookingSlice = createSlice({
       state.bookingData.selectedFinishDate=action.payload
      },
      setCurrentTime:(state,action)=>{
-      state.bookingData.totalPrice=action.payload
+      state.bookingData.currentTime=action.payload
      },
      setPrice:(state,action)=>{
-      state.bookingData.currentTime=action.payload
+      state.bookingData.totalPrice=action.payload
      },
      setLocation:(state,action)=>{
       state.bookingData.location=action.payload
@@ -225,6 +226,9 @@ const bookingSlice = createSlice({
      },
      setLocationModalVisible:(state,action)=>{
       state.bookingData.locationModalVisible=action.payload
+     },
+     setCarId:(state,action) =>{
+        state.bookingData.carId=action.payload
      }
   
   },
@@ -368,7 +372,8 @@ export const {
   setShowAdditionalRow,
   setIsFocused,
   setMarkedDates,
-  setLocationModalVisible
+  setLocationModalVisible,
+  setCarId
 } = bookingSlice.actions;
 
 export const ModalVisible = (state)=>state.booking.bookingData.modalVisible
@@ -376,7 +381,7 @@ export const LocationModalVisible = (state)=>state.booking.bookingData.locationM
 export const startDate = (state)=>state.booking.bookingData.selectedStartDate
 export const finishDate = (state)=>state.booking.bookingData.selectedFinishDate
 export const CurrentTime = (state)=>state.booking.bookingData.currentTime
-export const price = (state)=>state.booking.bookingData.price
+export const Price = (state)=>state.booking.bookingData.price
 export const LocationRedux = (state)=>state.booking.bookingData.location
 export const ReturnLocation = (state)=>state.booking.bookingData.returnLocation
 export const Predictions = (state)=>state.booking.bookingData.predictions
@@ -385,5 +390,7 @@ export const ReturnModalVisible = (state)=>state.booking.bookingData.returnModal
 export const ShowAdditionalRow = (state)=>state.booking.bookingData.showAdditionalRow
 export const IsFocused = (state)=>state.booking.bookingData.isFocused
 export const MarkedDates = (state)=>state.booking.bookingData.markedDates
+export const CarId = (state)=> state.booking.bookingData.carId
+
 
 export default bookingSlice.reducer;

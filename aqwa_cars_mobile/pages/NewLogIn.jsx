@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useContext } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,6 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -17,6 +18,9 @@ import { Feather } from "@expo/vector-icons";
 import axios from "axios";
 import appConfig from "../appConfig";
 import Toast from "react-native-toast-message";
+import { useDispatch, useSelector } from "react-redux";
+import { saveEmailForgot,savePasswordUser } from "../store/userSlice";
+import {LoginContext} from "../context/AuthContext.jsx"
 
 const { width, height } = Dimensions.get("screen");
 
@@ -27,7 +31,18 @@ const NewLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { logindata, setLoginData } = useContext(LoginContext);
+console.log("context",logindata);
+console.log("data user login",email,password)
+  const dispatch = useDispatch();
 
+  const userEmail = (value) => {
+    dispatch(saveEmailForgot(value));
+  };
+  const userPassword = (value) => {
+    dispatch(savePasswordUser(value));
+  };
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -38,30 +53,90 @@ const NewLogin = () => {
   }, [email, password]);
 
   const validateEmail = () => {
-    const re = /\S+@\S+\.\S+/;
-    const isValid = re.test(email);
-    setEmailError(isValid ? "" : "Invalid email format");
+    const trimmedEmail = email.trim()
+    const re = /^\S+@\S+\.\S+$/
+    const isValid = re.test(trimmedEmail);
+    setEmail(trimmedEmail)
+    setEmailError(isValid ? "" : (trimmedEmail ? "Invalid email format" : ""));
   };
 
   const validatePassword = () => {
     let error = "";
-    if (password.length < 8) {
-      error = "Password must be at least 8 characters long";
-    } else if (!/[a-z]/.test(password)) {
-      error = "Password must contain at least one lowercase letter";
-    } else if (!/[A-Z]/.test(password)) {
-      error = "Password must contain at least one uppercase letter";
-    } else if (!/\d/.test(password)) {
-      error = "Password must contain at least one digit";
-    } else if (!/[@$!%*?&]/.test(password)) {
-      error = "Password must contain at least one special character";
+    if (password.length > 0) {
+      if (password.length < 8) {
+        error = "Password must be at least 8 characters long";
+      } else if (!/[a-z]/.test(password)) {
+        error = "Password must contain at least one lowercase letter";
+      } else if (!/[A-Z]/.test(password)) {
+        error = "Password must contain at least one uppercase letter";
+      } else if (!/\d/.test(password)) {
+        error = "Password must contain at least one digit";
+      } else if (!/[@$!%*?&]/.test(password)) {
+        error = "Password must contain at least one special character";
+      }
     }
     setPasswordError(error);
   };
+  const otpVerifSend = async () => {
+    if (email) {
+      try {
+        setLoading(true); 
+        const response = await axios.post(
+          `http://${appConfig.PUBLIC_SERVER_IP}:5000/api/users/sendVerificationEmail`,
+          { email }
+        );
 
+        if (response.status === 200) {
+          console.log("Successfully OTP Verified")
+        
+          Toast.show({
+            type: 'success',
+            text1: 'Success',
+            text2: 'Code sent successfully',
+          });
+        }
+      } catch (error) {
+        if (error.response) {
+          if (error.response.status === 404) {
+            console.log("User not found");
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'User not found',
+            });
+          } else if (error.response.status === 500) {
+            console.log("Failed to send email");
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Failed to send email',
+            });
+          } else {
+            console.log("Other error:", error);
+          }
+        } else {
+          console.error("Network error:", error);
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Network error',
+          });
+        }
+      } finally {
+        setLoading(false); 
+      }
+    } else {
+      console.log("Please enter a valid email");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid email',
+      });
+    }
+  };
   const submitLogin = async () => {
-    // If both email and password are valid, proceed with login
-    if (!emailError && !passwordError) {
+    if (!emailError && !passwordError && email && password) {
+      setLoading(true);
       try {
         const response = await axios.post(
           `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/emailLogin`,
@@ -70,26 +145,83 @@ const NewLogin = () => {
             password: password,
           }
         );
-
+  
         if (response.status === 200 && response.data.result && response.data.result.id) {
           const { id, token } = response.data.result;
-
+         await setEmail("")
+          await setPassword("")
+  
           await AsyncStorage.setItem("userId", id.toString());
           await AsyncStorage.setItem("token", token);
-
+          await setLoginData(true)
+          console.log(logindata,"after");
           navigation.navigate("NewHome");
+          Toast.show({
+            type: 'success',
+            text1: 'Success',
+            text2: 'Welcome, you are successfully logged in',
+          });
         }
       } catch (error) {
-        if (error.response && error.response.status === 422) {
-          console.log("422", error);
+        if (error.response) {
+          if (error.response.status === 422) {
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Invalid email or password',
+            });
+          } else if (error.response.status === 404) {
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'User not found',
+            });
+          } else if (error.response.status === 403 && error.response.data.error === "Account not verified. Please verify your email address") {
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Account not verified. Please verify your email address',
+            });
+            await userEmail(email)
+            await userPassword(password)
+            await otpVerifSend()
+            await navigation.navigate("OtpVerification");
+            setEmail("")
+            setPassword("")
+
+          } else if (error.response.status === 403) {
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Account is blocked or archived',
+            });
+          } else if (error.response.status === 500) {
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Internal server error',
+            });
+          }
         } else {
-          console.error("Error registering user:", error);
+          console.error("Error logging in:", error);
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'An error occurred, please try again later',
+          });
         }
+      } finally {
+        setLoading(false);
       }
     } else {
-      console.log("Verify email and password");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid email and password',
+      });
     }
   };
+  
 
   return (
     <View>
@@ -119,26 +251,38 @@ const NewLogin = () => {
                     placeholderTextColor={"#cccccc"}
                     onChangeText={(text) => setEmail(text)}
                     keyboardType="email-address"
+                    value={email}
                   />
                   {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-                  <TextInput
-                    style={[styles.FirstInput, passwordError ? styles.errorInput : null]}
-                    placeholder="Type Your Password"
-                    placeholderTextColor={"#cccccc"}
-                    secureTextEntry={!showPassword}
-                    onChangeText={(text) => setPassword(text)}
-                    value={password}
-                  />
+                  <View style={styles.contPassEyeShow}>
+                    <TextInput
+                      style={[styles.FirstInputPass, passwordError ? styles.errorInput : null]}
+                      placeholder="Type Your Password"
+                      placeholderTextColor={"#cccccc"}
+                      secureTextEntry={!showPassword}
+                      onChangeText={(text) => setPassword(text)}
+                      value={password}
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeIconContainer}
+                      onPress={togglePasswordVisibility}
+                    >
+                      <Feather name={showPassword ? "eye" : "eye-off"} size={20} color="#cccccc" />
+                    </TouchableOpacity>
+                  </View>
                   {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-                  <TouchableOpacity
-                    style={styles.eyeIconContainer}
-                    onPress={togglePasswordVisibility}
-                  >
-                    <Feather name={showPassword ? "eye" : "eye-off"} size={20} color="#cccccc" />
+                </View>
+                <View style={styles.resendContainer}>
+                  <TouchableOpacity style={styles.resendBtnContainer} onPress={()=>navigation.navigate("EmailAccount")}>
+                    <Text style={styles.resendText}>Forgot password</Text>
                   </TouchableOpacity>
                 </View>
-                <Pressable style={styles.btnSignIn} onPress={submitLogin}>
-                  <Text style={styles.textSignIn}>Sign In</Text>
+                <Pressable style={styles.btnSignIn} onPress={submitLogin} disabled={loading}>
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.textSignIn}>Login</Text>
+                  )}
                 </Pressable>
               </View>
             </View>
@@ -164,7 +308,7 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: "center",
     alignItems: "center",
-    gap: 30,
+    gap: 10,
   },
   title: {
     paddingBottom: 20,
@@ -183,26 +327,40 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     position: "relative",
   },
+  FirstInputPass: {
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.75,
+    color: "white",
+    padding: 5,
+    borderRadius: 5,
+    borderColor: "gray",
+    borderBottomWidth: 1,
+    position: "relative",
+  },
+  contPassEyeShow: {
+    flexDirection: "row",
+    position: "relative",
+  },
   eyeIconContainer: {
     position: "absolute",
-    top: "70%",
+    top: "50%",
     right: 10,
     transform: [{ translateY: -12 }],
   },
   btnSignIn: {
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 40,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: "white",
-    width: width * 0.3,
-    height: 50,
+    width: width * 0.80,
+    height: height*0.065,
   },
   textSignIn: {
     justifyContent: "center",
     alignItems: "center",
     color: "white",
-    fontWeight: "500",
+    fontWeight: "700",
     fontSize: 20,
   },
   errorText: {
@@ -212,5 +370,26 @@ const styles = StyleSheet.create({
   },
   errorInput: {
     borderColor: "red",
+  },
+  resendContainer: {
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "flex-end",
+    paddingRight: 10,
+    width:"100%",
+    paddingBottom:30,
+  },
+  resendCodeText:{
+    color: "gray",
+  },
+  resendText: {
+    color: "white",
+    paddingLeft: 5,
+    textDecorationLine: 'underline', 
+  },
+  resendBtnContainer:{
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection:"row",
   },
 });

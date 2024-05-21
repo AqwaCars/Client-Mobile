@@ -7,7 +7,7 @@ import FilterButtons from '../components/FilterButtons';
 import moment from 'moment';
 import BottomSheets from '../components/BottomSheets';
 import { useDispatch, useSelector } from 'react-redux';
-import { CurrentTime, IsFocused, LocationModalVisible, LocationRedux, MarkedDates, ModalVisible, Predictions, ReturnLocation, ReturnModalVisible, ReturnPredictions, ShowAdditionalRow, finishDate, setIsFocused, setLocation, setLocationModalVisible, setMarkedDates, setModalVisible, setPredictions, setReturnLocation, setReturnModalVisible, setReturnPrediction, setSelectedFinishDate, setSelectedStartDate, setShowAdditionalRow, startDate,getAllCarByDate } from '../store/bookingSlice'
+import { CurrentTime, LocationRedux, MarkedDates, finishDate, startDate } from '../store/bookingSlice'
 
 
 
@@ -17,24 +17,21 @@ const CarsList = () => {
   
   const navigation = useNavigation();
   const route = useRoute()
-  const {filteredCars,body}= route.params
+  const {filteredCars}= route.params
 
 
   const dispatch = useDispatch();
-  const modalVisible = useSelector(ModalVisible)
-  const returnModalVisible = useSelector(ReturnModalVisible)
   const location = useSelector(LocationRedux)
-  const returnLocation = useSelector(ReturnLocation)
-  const predictions = useSelector(Predictions)
-  const returnPredictions = useSelector(ReturnPredictions)
   const selectedStartDate = useSelector(startDate)
   const selectedFinishDate = useSelector(finishDate)
   const currentTime = useSelector(CurrentTime)
-  const showAdditionalRow = useSelector(ShowAdditionalRow)
+
   const markedDates = useSelector(MarkedDates)
-  const locationModalVisible = useSelector(LocationModalVisible)
-  const isFocused = useSelector(IsFocused)
-  const [loading, setLoading] = useState('')
+
+  console.log('cars list ha zebi',markedDates)
+console.log('bro start',selectedStartDate)
+console.log('broo finish',selectedFinishDate)
+
   
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const bottomSheetRef = useRef();
@@ -49,10 +46,10 @@ const CarsList = () => {
     bottomSheetRef.current.open()
     console.log("bottom sheet",bottomSheetVisible)
   };
+
+
   
-  const handleCloseBottomSheet = () => {
-    setBottomSheetVisible(false); // Update the state to false when closing the bottom sheet
-  };
+
   
 
   return (
@@ -73,11 +70,11 @@ const CarsList = () => {
         <FilterButtons />
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {filteredCars?.map((car, index) => (
-          <CarCard key={index} car={car} markedDates={markedDates}/>
+        {filteredCars?.map((car) => (
+          <CarCard key={car.id} car={car}/>
         ))}
       </ScrollView>
-      <BottomSheets bottomSheetRef={bottomSheetRef}/>
+      <BottomSheets bottomSheetRef={bottomSheetRef} />
     </View>
   );
 }

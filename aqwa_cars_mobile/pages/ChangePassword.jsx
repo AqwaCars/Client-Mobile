@@ -30,11 +30,12 @@ const ChangePassword = () => {
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const navigation = useNavigation();
   const dispatch = useDispatch();
-
+  const email = useSelector((state) => state.user?.emailForget);
+  
   const userEmail = (value) => {
     dispatch(saveEmailForgot(value));
   };
-  const email = "makhloufaymen.fr@gmail.com";
+  
 
   const toggleNewPasswordVisibility = () => {
     setShowNewPassword(!showNewPassword);
