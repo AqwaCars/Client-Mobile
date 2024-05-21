@@ -4,6 +4,7 @@ import ArrowBack from '../assets/Svg/blackArrow.svg'
 import { Ionicons } from '@expo/vector-icons';
 const { height, width } = Dimensions.get("screen");
 import Tick from '../assets/Svg/tick.svg'
+import axios from "axios";
 import NavTab from '../components/NavBar';
 import { useNavigation } from '@react-navigation/native';
 
@@ -16,6 +17,16 @@ const BookingHistory = () => {
     const handlePress = () => {
         setShowDetails(!showDetails);
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+      };
+
+
+      const getAllBookingById = () =>{
+        try {
+          const response =`http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/booking/updatebooking`
+        } catch (error) {
+          
+        }
 
       };
 

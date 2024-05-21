@@ -375,4 +375,5 @@ export const {
   setSelected,
 } = carSlice.actions;
 export const filterSelection = (state) => state.car.selectedFilter;
+export const OneCar = (state)=>state.car.OneCar
 export default carSlice.reducer;

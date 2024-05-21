@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View,ScrollView,ImageBackground,Dimensions, Pressable,TouchableOpacity } from 'react-native'
-import React from 'react'
+import React, {useContext,useRef} from 'react'
 const { height, width } = Dimensions.get("screen");
 // import ArrowBack from '../assets/Svg/goBack.svg'
 import { Ionicons } from '@expo/vector-icons';
@@ -12,12 +12,20 @@ import Options2 from '../components/Options2';
 // import Checkbox from '../components/CheckBox';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { LoginContext } from '../context/AuthContext.jsx';
+import SignInModal from '../components/SignInModal.jsx';
 
 const NewCarDetails = ({route}) => {
+    const { logindata, setLoginData } = useContext(LoginContext);
+    console.log(logindata)
     const navigation = useNavigation()
     const car = route.params.car
     const total = route.params.totalPrice
+    const bottomSheetRef = useRef();
 
+    const openBottomSheet=()=>{
+        bottomSheetRef.current.open()
+    }
 console.log('lel details',total)
   return (
     <View style={{flexGrow:1}}>
@@ -83,11 +91,23 @@ console.log('lel details',total)
         <Text style={styles.optionsTitle}>{total} DT</Text>
         </View>
         <View style={{alignItems:'center',paddingBottom:height*0.025}}>
-        <TouchableOpacity style={styles.find} onPress={()=>navigation.navigate("TermsAndConditions")}>
+        <TouchableOpacity style={styles.find} 
+        // onPress={()=>navigation.navigate("TermsAndConditions",{total:total})}
+        onPress={()=>{
+            if (logindata===false) {
+                openBottomSheet()
+                
+            }
+            else if (logindata===true){
+                navigation.navigate("TermsAndConditions",{total:total})
+            }
+        }}
+        >
               <Text style={styles.textButton}>Continue</Text>
             </TouchableOpacity>
             </View>
     </ScrollView>
+    <SignInModal bottomSheetRef={bottomSheetRef}/>
     </View>
   )
 }
