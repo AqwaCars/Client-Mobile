@@ -14,12 +14,11 @@ import {
   Keyboard,
   ScrollView,
   Pressable,
-  Button,
-  Platform,
   Alert,
   Linking,
   Image as RNImage,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from "react-native";
 
 import { showToast } from "./../Helpers.js";
@@ -30,30 +29,24 @@ import RotatableSvg from "../components/RotatedArrow";
 import BackARrow from "../assets/Svg/backArrrow.svg";
 import Add from "../assets/Svg/add-picture.svg";
 import Change from "../assets/Svg/change-picture.svg";
-import { Camera } from "expo-camera";
-import * as CameraPermissions from "expo-camera";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSelector, useDispatch } from "react-redux";
 import { SignUpClick } from "../store/userSlice";
 import { useNavigation } from "@react-navigation/native";
 import appConfig from "../appConfig.js";
-import { saveEmailForgot,savePasswordUser } from "../store/userSlice";
+import { saveEmailForgot, savePasswordUser } from "../store/userSlice";
 import Toast from "react-native-toast-message";
+import CountryPicker from "react-native-country-picker-modal";
+import libphonenumber from "libphonenumber-js";
+import { MaterialCommunityIcons, MaterialIcons, Feather } from "@expo/vector-icons";
 
-// import { useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons,MaterialIcons } from "@expo/vector-icons";
 const { width, height } = Dimensions.get("screen");
 const NewSignUp = () => {
+  const parsePhoneNumberFromString = libphonenumber.parsePhoneNumberFromString;
+
   const flatListRef = useRef(null);
   const [fontLoaded, setFontLoaded] = useState(false);
-  const [Ratio, setRatio] = useState(0);
   const [isCameraVisible, setIsCameraVisible] = useState(false);
-  const [type, setType] = useState("");
-  const [typeSelfie, setTypeSelfie] = useState("");
-  // const [type, setType] = useState(CameraPermissions.CameraType.back);
-  // const [typeSelfie, setTypeSelfie] = useState(
-  //   CameraPermissions.CameraType.front
-  // );
   const [activeIndex, setActiveIndex] = useState(0);
   const [Document, setDocument] = useState("");
   const [showImageModal, setShowImageModal] = useState(false);
@@ -69,12 +62,16 @@ const NewSignUp = () => {
     dateOfBirth: "",
   });
   const [picsDetail, setPicsDetails] = useState({
-    selfie: "bfdgef",
-    license: "gfdgdf",
-    backLicense: "gdfgd",
-    passport: "gdfgdf",
+    selfie: "",
+    license: "",
+    backLicense: "",
+    passport: "",
+    frontCardId: "",
+    backCardId: "",
   });
+
   console.log("piiiiiics", picsDetail);
+  console.log("AAAAAAAAcs", userDetails);
   const [date, setDate] = useState(new Date());
   const [dateNow, setDateNow] = useState(new Date());
   const [show, setShow] = useState(false);
@@ -83,6 +80,170 @@ const NewSignUp = () => {
   const [cameraPermission, setCameraPermission] = useState(null);
   const [capturedImage, setCapturedImage] = useState("");
   const [showImage, setShowImage] = useState(false);
+  const [countryCode, setCountryCode] = useState("TN");
+  const [callingCode, setCallingCode] = useState("+216");
+  const [countryName, setCountryName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isValid, setIsValid] = useState(true);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [nameError, setNameError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [dateOfBirthError, setDateOfBirthError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+
+  const cloudinaryUpload = async (imageUri, folderName, field) => {
+    const cloudName = "dl9cp8cwq";
+    const myUploadPreset = "aqwa_cars";
+
+    try {
+      const formData = new FormData();
+      const uri = Platform.OS === 'android' ? imageUri : imageUri.replace('file://', '');
+
+      formData.append("file", {
+        uri: uri,
+        type: "image/jpeg",
+        name: "my_image.jpg",
+      });
+      formData.append("upload_preset", myUploadPreset);
+
+      if (folderName) {
+        formData.append("folder", folderName);
+      }
+
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log("Full response from Cloudinary:", responseData);
+        return { field, url: responseData.secure_url };
+      } else {
+        const errorResponse = await response.json();
+        console.error("Image upload failed", errorResponse);
+        throw new Error("Image upload failed");
+      }
+    } catch (error) {
+      console.log("Full response from Cloudinary:", error.message);
+      console.error("Cloudinary upload error:", JSON.stringify(error));
+      throw error;
+    }
+  };
+
+  const validatePassword = () => {
+    let error = "";
+    if (userDetails.password.length > 0) {
+      if (userDetails.password.length < 8) {
+        error = "Password must be at least 8 characters long";
+      } else if (!/[a-z]/.test(userDetails.password)) {
+        error = "Password must contain at least one lowercase letter";
+      } else if (!/[A-Z]/.test(userDetails.password)) {
+        error = "Password must contain at least one uppercase letter";
+      } else if (!/\d/.test(userDetails.password)) {
+        error = "Password must contain at least one digit";
+      } else if (!/[@$!%*?&]/.test(userDetails.password)) {
+        error = "Password must contain at least one special character";
+      }
+    }
+    setPasswordError(error);
+  };
+
+  const validateConfirmPassword = () => {
+    let error = "";
+    if (userDetails.confirmPassword.length > 0) {
+      if (userDetails.confirmPassword !== userDetails.password) {
+        error = "Passwords do not match";
+      }
+    }
+    setConfirmPasswordError(error);
+  };
+
+  useEffect(() => {
+    validatePassword();
+    validateConfirmPassword();
+  }, [userDetails.password, userDetails.confirmPassword]);
+
+  const validateEmail = () => {
+    const trimmedEmail = userDetails.email.trim();
+    const re = /^\S+@\S+\.\S+$/;
+    const isValid = re.test(trimmedEmail);
+    setUserDetails({ ...userDetails, email: trimmedEmail });
+    setEmailError(isValid ? "" : trimmedEmail ? "Invalid email format" : "");
+  };
+
+  useEffect(() => {
+    validateEmail();
+  }, [userDetails.email]);
+
+  const toggleNewPasswordVisibility = () => {
+    setShowNewPassword(!showNewPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
+  const validatePhoneNumber = (number, country) => {
+    if (number.trim() === "") {
+      setIsValid(true);
+      return;
+    }
+    try {
+      const phoneNumberObj = parsePhoneNumberFromString(number, country);
+      if (phoneNumberObj && phoneNumberObj.isValid()) {
+        setIsValid(true);
+      } else {
+        setIsValid(false);
+      }
+    } catch (error) {
+      setIsValid(false);
+    }
+  };
+
+  const formatPhoneNumber = (text) => {
+    try {
+      const phoneNumberObj = parsePhoneNumberFromString(text, countryCode);
+      if (phoneNumberObj) {
+        setPhoneNumber(phoneNumberObj.formatNational());
+      }
+    } catch (error) {
+      setIsValid(false);
+    }
+  };
+
+  const handlePhoneNumberChange = (text) => {
+    formatPhoneNumber(text);
+  };
+
+  const handleCountryCodeChange = (c) => {
+    setCountryCode(c.cca2);
+    setCallingCode(`+${c.callingCode[0]}`);
+    setCountryName(c.name);
+  };
+
+  useEffect(() => {
+    validatePhoneNumber(phoneNumber, countryCode);
+    if (callingCode && phoneNumber && isValid) {
+      setUserDetails(prevDetails => ({
+        ...prevDetails,
+        phone: `${callingCode} ${phoneNumber}`,
+      }));
+    } else {
+      setUserDetails(prevDetails => ({
+        ...prevDetails,
+        phone: "",
+      }));
+    }
+  }, [phoneNumber, countryCode, isValid]);
+
+  console.log(phoneNumber);
 
   const userEmail = (value) => {
     dispatch(saveEmailForgot(value));
@@ -93,19 +254,19 @@ const NewSignUp = () => {
   const otpVerifSend = async () => {
     if (userDetails.email) {
       try {
-        setLoading(true); 
+        setLoading(true);
         const response = await axios.post(
           `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/sendVerificationEmail`,
-          { email:userDetails.email }
+          { email: userDetails.email }
         );
 
         if (response.status === 200) {
-          console.log("Successfully OTP Verified")
-        
+          console.log("Successfully OTP Verified");
+
           Toast.show({
-            type: 'success',
-            text1: 'Success',
-            text2: 'Code sent successfully',
+            type: "success",
+            text1: "Success",
+            text2: "Code sent successfully",
           });
         }
       } catch (error) {
@@ -113,16 +274,16 @@ const NewSignUp = () => {
           if (error.response.status === 404) {
             console.log("User not found");
             Toast.show({
-              type: 'error',
-              text1: 'Error',
-              text2: 'User not found',
+              type: "error",
+              text1: "Error",
+              text2: "User not found",
             });
           } else if (error.response.status === 500) {
             console.log("Failed to send email");
             Toast.show({
-              type: 'error',
-              text1: 'Error',
-              text2: 'Failed to send email',
+              type: "error",
+              text1: "Error",
+              text2: "Failed to send email",
             });
           } else {
             console.log("Other error:", error);
@@ -130,27 +291,27 @@ const NewSignUp = () => {
         } else {
           console.error("Network error:", error);
           Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: 'Network error',
+            type: "error",
+            text1: "Error",
+            text2: "Network error",
           });
         }
       } finally {
-        setLoading(false); 
+        setLoading(false);
       }
     } else {
       console.log("Please enter a valid email");
       Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Please enter a valid email',
+        type: "error",
+        text1: "Error",
+        text2: "Please enter a valid email",
       });
     }
   };
+
   useEffect(() => {
     const handleCameraPermission = async () => {
-      const { status } =
-        await CameraPermissions.requestCameraPermissionsAsync();
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
       setCameraPermission(status);
       if (status === "granted") {
         return;
@@ -165,7 +326,7 @@ const NewSignUp = () => {
         );
       } else {
         const { status: newStatus } =
-          await Camera.requestCameraPermissionsAsync();
+          await ImagePicker.requestCameraPermissionsAsync();
         setCameraPermission(newStatus);
         if (newStatus === "granted") {
           return;
@@ -194,9 +355,31 @@ const NewSignUp = () => {
   }, []);
 
   const SignUpHandle = async () => {
-    setLoading(true); // Start loader
-  
+    setLoading(true);
+
     try {
+      const imagesToUpload = [
+        { uri: picsDetail.selfie, field: "selfie" },
+        { uri: picsDetail.license, field: "license" },
+        { uri: picsDetail.backLicense, field: "backLicense" },
+        { uri: picsDetail.frontCardId, field: "frontCardId" },
+        { uri: picsDetail.backCardId, field: "backCardId" },
+        ...(picsDetail.passport ? [{ uri: picsDetail.passport, field: "passport" }] : []),
+      ];
+
+      const uploadPromises = imagesToUpload.map(image =>
+        cloudinaryUpload(image.uri, "user_images", image.field)
+      );
+
+      const uploadResults = await Promise.all(uploadPromises);
+
+      const updatedPicsDetails = uploadResults.reduce((acc, { field, url }) => {
+        acc[field] = url;
+        return acc;
+      }, {});
+
+      setPicsDetails(updatedPicsDetails);
+
       const response = await axios.post(
         `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/SignUpUser`,
         {
@@ -206,18 +389,20 @@ const NewSignUp = () => {
           confirmPassword: userDetails.confirmPassword,
           email: userDetails.email,
           dateOfBirth: userDetails.dateOfBirth,
-          selfie: picsDetail.selfie,
-          drivingLicenseFront: picsDetail.license,
-          drivingLicenseBack: picsDetail.backLicense,
-          passport: picsDetail.passport,
+          selfie: updatedPicsDetails.selfie,
+          drivingLicenseFront: updatedPicsDetails.license,
+          drivingLicenseBack: updatedPicsDetails.backLicense,
+          passport: updatedPicsDetails.passport,
+          cardIdFront: updatedPicsDetails.frontCardId,
+          cardIdBack: updatedPicsDetails.backCardId
         }
       );
-  
+
       if (response.status === 201) {
         Toast.show({
-          type: 'success',
-          text1: 'Success',
-          text2: 'Registration Successfully done 😃!',
+          type: "success",
+          text1: "Success",
+          text2: "Registration Successfully done 😃!",
         });
         console.log("Successfully registered");
         await userEmail(userDetails.email);
@@ -230,37 +415,34 @@ const NewSignUp = () => {
         const status = error.response.status;
         if (status === 409) {
           Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: error.response.data.error || 'Conflict occurred. Please try again.',
+            type: "error",
+            text1: "Error",
+            text2: error.response.data.error || "Conflict occurred. Please try again.",
           });
         } else if (status === 422) {
           Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: error.response.data.error || 'Validation error. Please check your input.',
+            type: "error",
+            text1: "Error",
+            text2: error.response.data.error || "Validation error. Please check your input.",
           });
         } else {
           Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: 'An unexpected error occurred. Please try again.',
+            type: "error",
+            text1: "Error",
+            text2: "An unexpected error occurred. Please try again.",
           });
         }
-        // console.error("Error registering user:", error.response.data.error);
       } else {
         Toast.show({
-          type: 'error',
-          text1: 'Error',
-          text2: 'Network error. Please try again.',
+          type: "error",
+          text1: "Error",
+          text2: "Network error. Please try again.",
         });
-        // console.error("Network error:", error);
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
-  
 
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -269,51 +451,39 @@ const NewSignUp = () => {
     if (currentDate) {
       const formattedDate = currentDate.toISOString().split("T")[0];
       setUserDetails({ ...userDetails, dateOfBirth: formattedDate });
-      // console.log(formattedDate, "formdata");
     }
   };
   const onDismiss = () => {
     setShow(false);
   };
-  // console.log(userDetails, "lllll");
 
   const showMode = () => {
     setShow(true);
   };
-  const cameraRef = useRef(null);
 
-  const takePicture = async (portrait) => {
-    try {
-      const { status } =
-        await CameraPermissions.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Sorry, we need camera permissions to make this work!");
-        return;
-      }
+  const pickImage = async (portrait) => {
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
 
-      if (cameraRef.current) {
-        const options = { quality: 0.5, base64: true };
-        const data = await cameraRef.current.takePictureAsync(options);
-        setCapturedImage(data.uri);
-        setShowImageModal(true);
-        // setIsCameraVisible(false);
-      }
-    } catch (error) {
-      console.error("Error taking picture:", error);
+    if (!result.canceled) {
+      setCapturedImage(result.assets[0].uri);
+      setShowImageModal(true);
+      setPortrait(portrait);
     }
   };
 
-  const handleConfirmImage = () => {
-    setPicsDetails({ ...picsDetail, [portait]: capturedImage });
+  const handleConfirmImage = async () => {
+    await setPicsDetails({ ...picsDetail, [portait]: capturedImage });
     console.log("Image confirmed:", capturedImage);
-    setShowImageModal(false);
-    setIsCameraVisible(false);
-    setCapturedImage("");
+    await setShowImageModal(false);
+    await setCapturedImage("");
   };
 
   const handleRetakePicture = () => {
     setShowImageModal(false);
-    setIsCameraVisible(true);
     setCapturedImage("");
   };
 
@@ -328,12 +498,20 @@ const NewSignUp = () => {
   }, []);
 
   function isFormComplete(userDetails, picsDetail) {
-    return (
+    const userDetailsComplete =
       Object.values(userDetails).length === 6 &&
-      Object.values(picsDetail).length === 4 &&
-      Object.values(userDetails).every((value) => value !== "") &&
-      Object.values(picsDetail).every((value) => value !== "")
-    );
+      Object.values(userDetails).every((value) => value !== "");
+
+    const picsDetailComplete =
+      Object.entries(picsDetail).length === 6 &&
+      Object.entries(picsDetail).every(([key, value]) => {
+        if (key === "passport") {
+          return true
+        }
+        return value !== "";
+      });
+
+    return userDetailsComplete && picsDetailComplete;
   }
 
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -362,17 +540,6 @@ const NewSignUp = () => {
     setUserDetails({ ...userDetails, [field]: value });
   };
 
-  const handlePics = (field, value) => {
-    setPicsDetails({ ...picsDetail, [field]: value });
-    setShowImageModal(false);
-    setIsCameraVisible(false);
-  };
-  const handleCanceledPics = (field, value) => {
-    setCapturedImage("");
-    setShowImageModal(false);
-    setIsCameraVisible(true);
-  };
-
   const handleButtonPress = () => {
     if (activeIndex === 0) {
       setActiveIndex(1);
@@ -393,25 +560,8 @@ const NewSignUp = () => {
     setActiveIndex(pageNum);
   };
 
-  const pickImage = async () => {
-    try {
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
-        allowsEditing: false,
-        aspect: [4, 3],
-        quality: 1,
-      });
-      // console.log(result);
-      if (!result.canceled) {
-        setDocument(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error("Error picking image: ", error);
-    }
-  };
-
   if (!fontLoaded) {
-    return null; // or a loading indicator
+    return null;
   }
 
   const renderItem = ({ item }) => {
@@ -422,7 +572,6 @@ const NewSignUp = () => {
           start={{ x: 0, y: 1 }}
           end={{ x: 1, y: 0 }}
           colors={["#321947", "#000000"]}
-          // style={styles.formContainer}
         >
           <ScrollView
             contentContainerStyle={styles.ScrollContainer}
@@ -432,14 +581,12 @@ const NewSignUp = () => {
               style={{
                 alignItems: "center",
                 justifyContent: "space-evenly",
-                // backgroundColor:"red",
                 height,
               }}
             >
               <View
                 style={{
                   height: height * 0.2,
-                  // backgroundColor:"green"
                 }}
               >
                 <Image
@@ -450,39 +597,69 @@ const NewSignUp = () => {
               <View
                 style={{
                   height: height * 0.4,
-                  // backgroundColor:"yellow"
                 }}
               >
                 <TextInput
                   style={styles.FirstInput}
-                  placeholder="Username"
+                  placeholder="Full Name"
                   placeholderTextColor={"#cccccc"}
                   onChangeText={(text) => handleUserChange("name", text)}
                   value={userDetails.name}
                 />
-                <TextInput
-                  style={styles.FirstInput}
-                  placeholder="Enter Your  Email"
-                  placeholderTextColor={"#cccccc"}
-                  onChangeText={(text) => handleUserChange("email", text)}
-                  value={userDetails.email}
-                  keyboardType="email-address"
-                />
-                <TextInput
-                  style={styles.FirstInput}
-                  placeholder="Type Your Phone Number"
-                  placeholderTextColor={"#cccccc"}
-                  onChangeText={(text) => handleUserChange("phone", text)}
-                  value={userDetails.phone}
-                  keyboardType="phone-pad"
-                />
+                <View style={styles.contInpError} >
 
+                  <TextInput
+                    style={styles.FirstInput}
+                    placeholder="Enter Your  Email"
+                    placeholderTextColor={"#cccccc"}
+                    onChangeText={(text) => handleUserChange("email", text)}
+                    value={userDetails.email}
+                    keyboardType="email-address"
+                  />
+                  {emailError ? (
+                    <Text style={styles.errorText}>{emailError}</Text>
+                  ) : null}
+                </View>
+                <View style={styles.contInpError}>
+
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <View style={styles.FirstInputCont}>
+                      <CountryPicker
+                        withCallingCode
+                        withFilter
+                        withFlag
+                        withAlphaFilter
+                        countryCode={countryCode}
+                        onSelect={handleCountryCodeChange}
+                        containerButtonStyle={[
+                          styles.FirstInputPhonePicker,
+                        ]}
+                      />
+                      <View style={styles.callingCodeTextCont}>
+                        {!phoneNumber ? <Text style={{ color: "#cccccc" }}>{callingCode}</Text> : <Text style={{ color: "white" }}>{callingCode}</Text>}
+                      </View>
+                      <TextInput
+                        style={styles.FirstInputPhone}
+                        onChangeText={(text) => {
+                          setPhoneNumber(text);
+                          handlePhoneNumberChange(text);
+                        }}
+                        value={phoneNumber}
+                        placeholder="Enter your phone number"
+                        placeholderTextColor={"#cccccc"}
+                        keyboardType="phone-pad"
+                        blurOnSubmit={false}
+                      />
+                    </View>
+                  </View>
+                  {!isValid && phoneNumber.trim() !== "" && (
+                    <Text style={styles.errorText}>Invalid phone number</Text>
+                  )}
+                </View>
                 <TouchableOpacity onPress={showMode} style={styles.birthBtn}>
-                  <Text style={styles.birthText}>
-                    {!userDetails.dateOfBirth
-                      ? "Select your date"
-                      : userDetails.dateOfBirth}
-                  </Text>
+                  {!userDetails.dateOfBirth ? <Text style={{ color: "#cccccc" }}>
+                    Select your date
+                  </Text> : <Text style={{ color: "white" }}>{userDetails.dateOfBirth}</Text>}
                 </TouchableOpacity>
                 {show && (
                   <DateTimePicker
@@ -493,26 +670,53 @@ const NewSignUp = () => {
                     onDismiss={onDismiss}
                   />
                 )}
-                <TextInput
-                  style={styles.FirstInput}
-                  placeholder="Type Your Password"
-                  placeholderTextColor={"#cccccc"}
-                  onChangeText={(text) => handleUserChange("password", text)}
-                  value={userDetails.password}
-                  keyboardType="default"
-                  secureTextEntry={true}
-                />
-                <TextInput
-                  style={styles.FirstInput}
-                  placeholder="Confirm Your Password"
-                  placeholderTextColor={"#cccccc"}
-                  onChangeText={(text) =>
-                    handleUserChange("confirmPassword", text)
-                  }
-                  value={userDetails.confirmPassword}
-                  keyboardType="default"
-                  secureTextEntry={true}
-                />
+                <View style={styles.contInpError} >
+
+                  <View>
+                    <TextInput
+                      style={styles.FirstInputPassword}
+                      placeholder="Type Your Password"
+                      placeholderTextColor={"#cccccc"}
+                      onChangeText={(text) => handleUserChange("password", text)}
+                      value={userDetails.password}
+                      keyboardType="default"
+                      secureTextEntry={!showNewPassword}
+                    />
+                    <Pressable
+                      style={styles.eyeIconContainer}
+                      onPress={toggleNewPasswordVisibility}
+                    >
+                      <Feather name={showNewPassword ? "eye" : "eye-off"} size={18} color="#cccccc" />
+                    </Pressable>
+                  </View>
+                  {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+
+                </View>
+                <View style={styles.contInpError} >
+
+                  <View>
+
+                    <TextInput
+                      style={styles.FirstInputPassword}
+                      placeholder="Confirm Your Password"
+                      placeholderTextColor={"#cccccc"}
+                      onChangeText={(text) =>
+                        handleUserChange("confirmPassword", text)
+                      }
+                      value={userDetails.confirmPassword}
+                      keyboardType="default"
+                      secureTextEntry={!showConfirmPassword}
+                    />
+                    <Pressable
+                      style={styles.eyeIconContainer}
+                      onPress={toggleConfirmPasswordVisibility}
+                    >
+                      <Feather name={showConfirmPassword ? "eye" : "eye-off"} size={18} color="#cccccc" />
+                    </Pressable>
+                  </View>
+                  {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
+
+                </View>
               </View>
             </View>
           </ScrollView>
@@ -525,7 +729,6 @@ const NewSignUp = () => {
           start={{ x: 0, y: 1 }}
           end={{ x: 1, y: 0 }}
           colors={["#321947", "#000000"]}
-          // style={styles.formContainer}
         >
           <ScrollView
             contentContainerStyle={styles.ScrollContainer}
@@ -535,14 +738,12 @@ const NewSignUp = () => {
               style={{
                 alignItems: "center",
                 justifyContent: "space-evenly",
-                // backgroundColor:"red",
                 height,
               }}
             >
               <View
                 style={{
                   height: height * 0.2,
-                  // backgroundColor:"green"
                 }}
               >
                 <Image
@@ -553,7 +754,6 @@ const NewSignUp = () => {
               <View
                 style={{
                   height: height * 0.4,
-                  // backgroundColor:"yellow",
                   justifyContent: "center",
                 }}
               >
@@ -561,9 +761,8 @@ const NewSignUp = () => {
                   delayPressIn={0}
                   style={styles.inputContainer}
                   onPress={() => {
-                    setType("front");
                     setPortrait("selfie");
-                    setIsCameraVisible(true);
+                    pickImage("selfie");
                   }}
                 >
                   <View
@@ -573,7 +772,6 @@ const NewSignUp = () => {
                   >
                     {picsDetail.selfie ? <Change /> : <Add />}
                   </View>
-                  {/* <View style={styles.inputContainer}> */}
                   <TextInput
                     style={[
                       styles.input,
@@ -582,19 +780,19 @@ const NewSignUp = () => {
                       },
                       {
                         backgroundColor: picsDetail.selfie
-                          ? "transparent" 
+                          ? "transparent"
                           : "transparent",
                       },
                     ]}
                     placeholder={
                       picsDetail.selfie
-                        ? "Tap here to change Image  ☑️"
+                        ? "Tap here to change Selfie  ☑️"
                         : "Take a Selfie"
                     }
                     placeholderTextColor={
                       picsDetail.selfie ? "#cccccc" : "#cccccc"
-                    } 
-                    editable={false} 
+                    }
+                    editable={false}
                   />
                   {!picsDetail.selfie && (
                     <Text
@@ -608,14 +806,12 @@ const NewSignUp = () => {
                       *
                     </Text>
                   )}
-                  {/* </View> */}
                 </Pressable>
                 <Pressable
                   style={styles.inputContainer}
                   onPress={() => {
-                    setType("back");
                     setPortrait("license");
-                    setIsCameraVisible(true);
+                    pickImage("license");
                   }}
                 >
                   <View
@@ -632,12 +828,11 @@ const NewSignUp = () => {
                     ]}
                     placeholder={
                       picsDetail.license
-                        ? "Tap here to change Image  ☑️"
-                        : " photo of your Driving License "
+                        ? "Tap here to change Driving License front  ☑️"
+                        : " Photo of the front of your Driving License "
                     }
                     placeholderTextColor={"#cccccc"}
-                    // keyboardType="email-address"
-                    editable={false} // Make the TextInput not editable
+                    editable={false}
                   />
                   {!picsDetail.license && (
                     <Text
@@ -655,9 +850,8 @@ const NewSignUp = () => {
                 <Pressable
                   style={styles.inputContainer}
                   onPress={() => {
-                    setType("back");
                     setPortrait("backLicense");
-                    setIsCameraVisible(true);
+                    pickImage("backLicense");
                   }}
                 >
                   <View
@@ -674,12 +868,11 @@ const NewSignUp = () => {
                     ]}
                     placeholder={
                       picsDetail.backLicense
-                        ? "Tap here to change Image  ☑️"
-                        : " photo of the back of your driving license "
+                        ? "Tap here to change Driving License back  ☑️"
+                        : " Photo of the back of your Driving License "
                     }
                     placeholderTextColor={"#cccccc"}
-                    // keyboardType="email-address"
-                    editable={false} // Make the TextInput not editable
+                    editable={false}
                   />
                   {!picsDetail.backLicense && (
                     <Text
@@ -697,9 +890,88 @@ const NewSignUp = () => {
                 <Pressable
                   style={styles.inputContainer}
                   onPress={() => {
-                    setType("back");
+                    setPortrait("frontCardId");
+                    pickImage("frontCardId");
+                  }}
+                >
+                  <View
+                    style={{
+                      paddingBottom: height * 0.007,
+                    }}
+                  >
+                    {picsDetail.frontCardId ? <Change /> : <Add />}
+                  </View>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { opacity: picsDetail.frontCardId ? 0.5 : 1 },
+                    ]}
+                    placeholder={
+                      picsDetail.frontCardId
+                        ? "Tap here to change Id Card front  ☑️"
+                        : " Photo of the front of your Id Card "
+                    }
+                    placeholderTextColor={"#cccccc"}
+                    editable={false}
+                  />
+                  {!picsDetail.frontCardId && (
+                    <Text
+                      style={{
+                        color: "white",
+                        position: "absolute",
+                        right: 5,
+                        top: -15,
+                      }}
+                    >
+                      *
+                    </Text>
+                  )}
+                </Pressable>
+                <Pressable
+                  style={styles.inputContainer}
+                  onPress={() => {
+                    setPortrait("backCardId");
+                    pickImage("backCardId");
+                  }}
+                >
+                  <View
+                    style={{
+                      paddingBottom: height * 0.007,
+                    }}
+                  >
+                    {picsDetail.backCardId ? <Change /> : <Add />}
+                  </View>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { opacity: picsDetail.backCardId ? 0.5 : 1 },
+                    ]}
+                    placeholder={
+                      picsDetail.backCardId
+                        ? "Tap here to change Id Card back  ☑️"
+                        : " Photo of the back of your Id Card "
+                    }
+                    placeholderTextColor={"#cccccc"}
+                    editable={false}
+                  />
+                  {!picsDetail.backCardId && (
+                    <Text
+                      style={{
+                        color: "white",
+                        position: "absolute",
+                        right: 5,
+                        top: -15,
+                      }}
+                    >
+                      *
+                    </Text>
+                  )}
+                </Pressable>
+                <Pressable
+                  style={styles.inputContainer}
+                  onPress={() => {
                     setPortrait("passport");
-                    setIsCameraVisible(true);
+                    pickImage("passport");
                   }}
                 >
                   <View
@@ -716,12 +988,11 @@ const NewSignUp = () => {
                     ]}
                     placeholder={
                       picsDetail.passport
-                        ? "Tap here to change Image  ☑️"
-                        : " photo of your Passport  "
+                        ? "Tap here to change Passporty  ☑️"
+                        : " Photo of your Passport (optional)  "
                     }
                     placeholderTextColor={"#cccccc"}
-                    // keyboardType="email-address"
-                    editable={false} // Make the TextInput not editable
+                    editable={false}
                   />
                   {!picsDetail.passport && (
                     <Text
@@ -731,9 +1002,7 @@ const NewSignUp = () => {
                         right: 5,
                         top: -15,
                       }}
-                    >
-                      *
-                    </Text>
+                    ></Text>
                   )}
                 </Pressable>
               </View>
@@ -767,7 +1036,7 @@ const NewSignUp = () => {
           {keyboardVisible ? null : (
             <Pressable
               activeOpacity={0.5}
-              style={[styles.FlatBtn, { backgroundColor: "#321947" }]} // Adjusted to use a solid color
+              style={[styles.FlatBtn, { backgroundColor: "#321947" }]}
               onPress={() =>
                 isFormComplete(userDetails, picsDetail)
                   ? SignUpHandle()
@@ -813,58 +1082,23 @@ const NewSignUp = () => {
               </View>
             </Pressable>
           )}
-          {loading && ( 
-          <View style={styles.loader}>
-            <ActivityIndicator size="large" color="white" />
-          </View>
-        )}
+          {loading && (
+            <View style={styles.loader}>
+              <ActivityIndicator size="large" color="white" />
+            </View>
+          )}
         </LinearGradient>
       )}
-   
-  {isCameraVisible && (
-      <View style={styles.containerCCamera}>
-    <View style={styles.cameraContainer}>
-      <Camera
-        ref={cameraRef}
-        style={styles.camera}
-        type={type}
-        ratio="16:9"
-      />
+
       {showImageModal && (
         <ImagePreviewModal
           visible={showImageModal}
           imageUri={capturedImage}
           onConfirm={handleConfirmImage}
           onRetake={handleRetakePicture}
+          portait={portait}
         />
       )}
-      <TouchableOpacity
-          style={styles.cancelButtonContainer}
-          onPress={() => setIsCameraVisible(false)}
-        >
-          <MaterialIcons name="cancel" size={24} color="white" />
-        </TouchableOpacity>
-          <View style={styles.buttonContainer}>
-        {/* <TouchableOpacity onPress={() => setIsCameraVisible(false)}>
-        <MaterialIcons name="cancel" size={24} color="white" />
-        </TouchableOpacity> */}
-        <TouchableOpacity
-          style={styles.captureButton}
-          onPress={() => takePicture(portait)}
-        >
-          <MaterialCommunityIcons
-            name="camera-iris"
-            size={75}
-            color="white"
-          />
-        </TouchableOpacity>
-      </View>
-       
-    </View>
-   
-</View>
-  )}
-
     </>
   );
 };
@@ -885,16 +1119,7 @@ const styles = StyleSheet.create({
   FlatBtn: {
     height: height * 0.08,
     width: width,
-    // paddingRight:width*.15,
-    // borderBottomEndRadius: 100,
-    // backgroundColor:"red",
-    // borderBottomLeftRadius: 100,
-    // backgroundColor: "transparent",
     alignItems: "center",
-    // justifyContent: "flex-end",
-    // flexDirection: "row",
-    // borderTopColor: "#000000",
-    // justifyContent: "center",
     paddingBottom: height * 0.005,
     paddingLeft: width * 0.6,
   },
@@ -918,7 +1143,6 @@ const styles = StyleSheet.create({
   input: {
     height: Dimensions.get("window").height * 0.05,
     width: width * 0.75,
-
     color: "white",
     marginBottom: 10,
     padding: 5,
@@ -930,7 +1154,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: height * 0.01,
     borderRadius: 100,
-    // marginTop: 10,
     borderColor: "#000000",
     borderWidth: 0.5,
   },
@@ -944,10 +1167,9 @@ const styles = StyleSheet.create({
   ScrollContainer: {
     height,
     alignItems: "center",
-    // justifyContent: "space-evenly",
     flexGrow: 1,
   },
-  birthBtn:{
+  birthBtn: {
     height: Dimensions.get("window").height * 0.05,
     width: width * 0.75,
     color: "white",
@@ -962,44 +1184,39 @@ const styles = StyleSheet.create({
   },
   containerCCamera: {
     flex: 1,
-    // height,
-    // width
   },
   cameraContainer: {
     flex: 1,
-    backgroundColor: 'black',
-    justifyContent: 'space-between',
+    backgroundColor: "black",
+    justifyContent: "space-between",
   },
   camera: {
-    // flex: 1,
-    width: width, 
-    height: height * 0.8 
+    width: width,
+    height: height * 0.8,
   },
   buttonContainer: {
-    height:height*0.2,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems:"center",
+    height: height * 0.2,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: 'rgba(34, 34, 34, 0.9)', 
+    backgroundColor: "rgba(34, 34, 34, 0.9)",
   },
   cancelButton: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
   },
   captureButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', 
-    // paddingHorizontal: 20,
-    // paddingVertical: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height:90,
-    width:90,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 90,
+    width: 90,
   },
   cancelButtonContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 20,
     right: 20,
     zIndex: 1,
@@ -1014,6 +1231,61 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
   },
+  FirstInputPhone: {
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.5,
+    color: "white",
+  },
+  FirstInputPhonePicker: {
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.08,
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingBottom: 7,
+  },
+  FirstInputCont: {
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.75,
+    color: "white",
+    marginBottom: 10,
+    padding: 5,
+    borderRadius: 5,
+    borderColor: "gray",
+    borderBottomWidth: 1,
+    flexDirection: "row",
+  },
+  callingCodeTextCont: {
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.13,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  eyeIconContainer: {
+    position: "absolute",
+    top: "50%",
+    right: 10,
+    transform: [{ translateY: -12 }],
+  },
+  FirstInputPassword: {
+    height: Dimensions.get("window").height * 0.05,
+    width: width * 0.75,
+    color: "white",
+    marginBottom: 10,
+    padding: 5,
+    borderRadius: 5,
+    borderColor: "gray",
+    borderBottomWidth: 1,
+    position: "relative"
+  },
+  errorText: {
+    color: "red",
+    paddingBottom: 5,
+    fontSize: 11
+  },
+  contInpError: {
+    flexDirection: "column",
+  }
 });
 
 export default NewSignUp;

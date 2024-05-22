@@ -1,66 +1,103 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Modal } from 'react-native';
-import StarRating from 'react-native-star-rating';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+import RBSheet from 'react-native-raw-bottom-sheet';
 
-const screenHeight = Dimensions.get('window').height;
+const { height, width } = Dimensions.get('window');
 
-const ReviewSheet = ({ isServiceFinished }) => {
+const StarRating = ({ rating, onChangeRating }) => {
+  return (
+    <View style={styles.starContainer}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <TouchableOpacity key={star} onPress={() => onChangeRating(star)}>
+          <FontAwesome
+            name={star <= rating ? 'star' : 'star-o'}
+            size={40}
+            color={'#FFD700'}
+          />
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+};
+
+const ReviewSheet = ({ refRBSheet, isServiceFinished }) => {
   const [starCount, setStarCount] = useState(0);
-  const [modalVisible, setModalVisible] = useState(true);
-
+  
   useEffect(() => {
-    if (isServiceFinished) {
-      setModalVisible(true);
+    if (isServiceFinished && refRBSheet.current) {
+      refRBSheet.current.open();
     }
   }, [isServiceFinished]);
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={modalVisible}
-      onRequestClose={() => setModalVisible(false)}
+    <RBSheet
+      ref={refRBSheet}
+      height={210}
+      openDuration={250}
+      closeDuration={250}
+      closeOnDragDown={true}
+      closeOnPressBack={true}
+      closeOnPressMask={true}
+      draggable={true}
+      customStyles={{
+        wrapper: {
+          backgroundColor: "rgba(0,0,0,0.5)",
+        },
+        draggableIcon: {
+          backgroundColor: "#d5d5d5",
+          width: 60,
+        },
+        container: {
+          borderTopLeftRadius: 30,
+          borderTopRightRadius: 30,
+        },
+      }}
     >
-      <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          <Text style={styles.title}>Rate Your Experience</Text>
-          <StarRating
-            disabled={false}
-            maxStars={5}
-            rating={starCount}
-            selectedStar={(rating) => setStarCount(rating)}
-            fullStarColor={'#FFD700'}
-            starSize={40}
-          />
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.submitButton} onPress={() => {
-              alert(`Submitted ${starCount} stars!`);
-              setModalVisible(false);
-            }}>
-              <Text style={styles.buttonText}>Submit</Text>
-            </TouchableOpacity>
-          </View>
+      <View style={styles.modalView}>
+        <Text style={styles.title}>Rate Your Experience</Text>
+        <StarRating rating={starCount} onChangeRating={setStarCount} />
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.cancelButton} onPress={() => refRBSheet.current.close()}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.submitButton} onPress={() => {
+            alert(`Submitted ${starCount} stars!`);
+            refRBSheet.current.close();
+          }}>
+            <Text style={styles.submitButtonText}>Submit</Text>
+          </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </RBSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
+  modalView: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalView: {
-    width: '90%',
-    backgroundColor: 'white',
-    borderRadius: 10,
     padding: 20,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  starContainer: {
+    flexDirection: 'row',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    marginTop: 30,
+  },
+  cancelButton: {
+    flex: 1,
+    marginRight: 10,
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 10,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
@@ -71,32 +108,19 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    marginTop: 30,
-  },
-  cancelButton: {
-    flex: 1,
-    marginRight: 10,
-    padding: 15,
-    backgroundColor: '#ccc',
-    borderRadius: 10,
-    alignItems: 'center',
-  },
   submitButton: {
     flex: 1,
     marginLeft: 10,
     padding: 15,
-    backgroundColor: '#28a745',
+    backgroundColor: '#000',
     borderRadius: 10,
     alignItems: 'center',
   },
-  buttonText: {
+  cancelButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  submitButtonText: {
     color: 'white',
     fontWeight: 'bold',
   },
