@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import Toast from 'react-native-toast-message'; 
 
 import axios from "axios";
@@ -20,6 +19,7 @@ import appConfig from "../appConfig";
 import { useDispatch, useSelector } from "react-redux";
 import { saveEmailForgot } from "../store/userSlice";
 const { width, height } = Dimensions.get("screen");
+import ModalOfDevisesDeconnection from "../components/ModalOfDevisesDeconnection.jsx";
 
 const ChangePassword = () => {
   const [password, setPassword] = useState("");
@@ -28,14 +28,32 @@ const ChangePassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
-  const navigation = useNavigation();
   const dispatch = useDispatch();
-  const email = useSelector((state) => state.user?.emailForget);
+  const [modalVisible, setModalVisible] = useState(false);
   
+  const email = useSelector((state) => state.user?.emailForget);
+  console.log("dddddddddddddd",email);
+
+ const changeEmailPassStates =  (e)=>{
+    setConfirmPassword(e)
+    setPassword(e)
+  }
+
+  const changeModalVisible = (value)=>{
+    setModalVisible(value)
+  }
+  const openTheModal = ()=>{
+    if(password && confirmPassword && !passwordError && !confirmPasswordError){
+      setModalVisible(true)
+    }
+    else{
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Please verify your password and confirm password' });
+
+    }
+  }
   const userEmail = (value) => {
     dispatch(saveEmailForgot(value));
   };
-  
 
   const toggleNewPasswordVisibility = () => {
     setShowNewPassword(!showNewPassword);
@@ -45,6 +63,59 @@ const ChangePassword = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
+  const verifyChangePassword = async () => {
+    if (!password || !confirmPassword) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter new password and confirm password' });
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'New password and confirm password do not match' });
+      return;
+    }
+
+    if (passwordError || confirmPasswordError) {
+      // Display error messages if there are validation errors
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Passwords do not meet the required criteria' });
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/verifyCurrentPass`,
+        {
+          email: email,
+          newPassword: password,
+          confirmPassword: confirmPassword,
+        }
+      );
+
+      if (response.status === 200) {
+       
+        openTheModal()
+      }
+    } catch (error) {
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 400) {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Please provide new password, and confirm password' });
+        } else if (status === 422) {
+          if (error.response.data.error === "Please choose a different password") {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Please choose a different password' });
+          } else {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Passwords do not match or are invalid.' });
+          }
+        } else if (status === 404) {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'User not found' });
+        } else {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Internal server error. Please try again later.' });
+        }
+      } else {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Network error. Please check your internet connection.' });
+      }
+    }
+  };
+   
   useEffect(() => {
     validatePassword();
     validateConfirmPassword();
@@ -78,61 +149,7 @@ const ChangePassword = () => {
     setConfirmPasswordError(error);
   };
 
-  const changePassword = async (email, newPass, confirmPass) => {
-    if (!newPass || !confirmPass) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter new password and confirm password' });
-      return;
-    }
-    
-    if (newPass !== confirmPass) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'New password and confirm password do not match' });
-      return;
-    }
 
-    if (passwordError || confirmPasswordError) {
-      // Display error messages if there are validation errors
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Passwords do not meet the required criteria' });
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/changePassword`,
-        {
-          email: email,
-          newPassword: newPass,
-          confirmPassword: confirmPass,
-        }
-      );
-
-      if (response.status === 200) {
-        navigation.navigate("newLogIn");
-        userEmail("")
-        setPassword("")
-        setConfirmPassword("")
-        console.log("Successfully changed password");
-      }
-    } catch (error) {
-      if (error.response) {
-        const status = error.response.status;
-        if (status === 400) {
-          Toast.show({ type: 'error', text1: 'Error', text2: 'Please provide new password, and confirm password' });
-        } else if (status === 422) {
-          if (error.response.data.error === "Please choose a different password") {
-            Toast.show({ type: 'error', text1: 'Error', text2: 'Please choose a different password' });
-          } else {
-            Toast.show({ type: 'error', text1: 'Error', text2: 'Passwords do not match or are invalid.' });
-          }
-        } else if (status === 404) {
-          Toast.show({ type: 'error', text1: 'Error', text2: 'User not found' });
-        } else {
-          Toast.show({ type: 'error', text1: 'Error', text2: 'Internal server error. Please try again later.' });
-        }
-      } else {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Network error. Please check your internet connection.' });
-      }
-    }
-  };
 
   return (
     <View>
@@ -193,7 +210,8 @@ const ChangePassword = () => {
                 </View>
                   {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
                 <View style={styles.pressableBtnSubmit}>
-                  <Pressable style={styles.btnSubmit} onPress={()=>changePassword(email,password,confirmPassword)}>
+                  {/* <Pressable style={styles.btnSubmit} onPress={()=>changePassword(email,password,confirmPassword)}> */}
+                  <Pressable style={styles.btnSubmit} onPress={()=>verifyChangePassword()}>
                     <Text style={styles.textSubmit}>Submit</Text>
                   </Pressable>
                 </View>
@@ -202,6 +220,7 @@ const ChangePassword = () => {
           </View>
         </ScrollView>
       </LinearGradient>
+    <ModalOfDevisesDeconnection modalVisible={modalVisible} changeModalVisible={changeModalVisible} email={email} newPass={password} confirmPass={confirmPassword} changeEmailPassStates={changeEmailPassStates} userEmail={userEmail} passwordError={passwordError} confirmPasswordError={confirmPasswordError}/>
     </View>
   );
 };

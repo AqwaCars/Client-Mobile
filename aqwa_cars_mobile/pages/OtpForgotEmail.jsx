@@ -29,11 +29,9 @@ const OtpVerificationEmail = () => {
   const [loading, setLoading] = useState(false); 
   const dispatch = useDispatch();
 
-  const userEmail = (value) => {
-    dispatch(saveEmailForgot(value));
-  };
-  const email = useSelector((state) => state.user?.emailForget);
 
+  const email = useSelector((state) => state.user?.emailForget);
+console.log("hhhhhhhhhhhhhhh",email);
   const handleCodeChange = async (text, index) => {
     const newCode = [...code];
     newCode[index] = text;

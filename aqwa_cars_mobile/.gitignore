@@ -35,5 +35,6 @@ yarn-error.*
 *.tsbuildinfo
 
 # Ignore yarn.lock and package.json
-yarn.lock
-package.json
+/yarn.lock
+/package.json
+/.yarn/
