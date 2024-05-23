@@ -23,7 +23,7 @@ const ModalOfDevisesDeconnection = ({ modalVisible, changeModalVisible, email, n
     }
   };
   const logoutFromDevices = async () => {
-    setLoading(true); // Start loading
+    setLoading(true); 
     try {
       const response = await axios.post(`http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/deconnectionFromDevices`, { email });
   

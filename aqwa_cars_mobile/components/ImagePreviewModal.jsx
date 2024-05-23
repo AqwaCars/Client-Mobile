@@ -274,9 +274,11 @@ const ImagePreviewModal = ({ visible, imageUri, onConfirm, onRetake,portait,clou
      
         <View style={styles.container}>
           <View style={styles.innerContainer}>
-            <Text style={styles.instructions}>
-              Ensure the document is placed on a plain surface, is well-lit, and fits entirely within the frame.
-            </Text>
+           { portait === "selfie"?<Text style={styles.instructions}>
+           Make sure your face is well-lit, clearly visible, and fully within the frame
+            </Text>:<Text style={styles.instructions}>
+              Ensure the document is placed on a plain surface, is well-lit, and fits entirely within the frame
+            </Text>}
             <View style={styles.imageContainer}>
               <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
               {faceDetected && (

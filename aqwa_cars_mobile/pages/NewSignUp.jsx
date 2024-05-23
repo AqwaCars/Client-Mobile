@@ -105,7 +105,8 @@ const NewSignUp = () => {
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
-  
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 14);
 
 
 
@@ -411,6 +412,19 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
     handleCameraPermission();
   }, []);
 
+  const handleSendEmail = async () => {
+    try {
+        const response = await axios.post(`http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/sendWelcomEmail`, { email:userDetails.email });
+        if (response.status === 200) {
+            console.log('Email sent successfully');
+        } else {
+            console.log('Failed to send email');
+        }
+    } catch (error) {
+        console.log(error.response?.data?.error || 'Failed to send email');
+    }
+};
+
   const SignUpHandle = async () => {
     setLoading(true);
   
@@ -462,9 +476,10 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
           text2: "Registration Successfully done 😃!",
         });
         console.log("Successfully registered");
+        await handleSendEmail()
+        await otpVerifSend();
         await userEmail(userDetails.email);
         await userPassword(userDetails.password);
-        await otpVerifSend();
         await navigation.navigate("OtpVerification");
       }
     } catch (error) {
@@ -550,11 +565,11 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
     await setShowImageModal(false);
     await setIsCameraVisible(false);
     await setCapturedImage("");
-  //  await  setTimeout(() => {
-  //     if (flatListRef.current) {
-  //       flatListRef.current.scrollToIndex({ animated: true, index: 1 });
-  //     }
-  //   }, 100)
+   await  setTimeout(() => {
+      if (flatListRef.current) {
+        flatListRef.current.scrollToIndex({ animated: true, index: 1 });
+      }
+    }, 100)
   };
 
   const handleRetakePicture = () => {
@@ -763,6 +778,7 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
                     display="default"
                     onChange={onChange}
                     onDismiss={onDismiss}
+                    minimumDate={minDate}
                   />
                 )}
                 <View style={styles.contInpError} >

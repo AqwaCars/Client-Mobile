@@ -2,62 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { View, TextInput, StyleSheet, Dimensions, TouchableOpacity, Alert, Text, Pressable } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import CountryPicker from "react-native-country-picker-modal";
-import { parsePhoneNumberFromString, AsYouType } from "libphonenumber-js";
-
+import ModalOfDevisesDeconnectionCRM from './ModalOfDevisesDeconnectionCRM';
 const { height, width } = Dimensions.get("screen");
 
-const UnderlinedInputs = ({ changeConfirmNewPassword, changeNewPassword, changeCurrentPassword, currentPassword, newPassword, confirmNewPassword }) => {
+const UnderlinedInputs = ({ userData ,changeConfirmNewPassword, changeNewPassword, changeCurrentPassword, currentPassword, newPassword, confirmNewPassword, handleErrors,errors,modalVisible,changeModalVisible, countryCode,callingCode,phoneNumber,isValid,handleCountryCodeChange,handlePhoneNumberChange }) => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
-  const [countryCode, setCountryCode] = useState("TN");
-  const [callingCode, setCallingCode] = useState("+216");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [isValid, setIsValid] = useState(true);
-  const [errors, setErrors] = useState({
-    currentPassword: [],
-    newPassword: [],
-    confirmNewPassword: [],
-  });
-  console.log(phoneNumber);
-  const validatePhoneNumber = (number, country) => {
-    if (number.trim() === "") {
-      setIsValid(true);
-      return;
-    }
-    try {
-      const phoneNumberObj = parsePhoneNumberFromString(number, country);
-      if (phoneNumberObj && phoneNumberObj.isValid()) {
-        setIsValid(true);
-      } else {
-        setIsValid(false);
-      }
-    } catch (error) {
-      setIsValid(false);
-    }
-  };
-
-  const handlePhoneNumberChange = (text) => {
-    setPhoneNumber(text);
-    const formattedNumber = new AsYouType(countryCode).input(text);
-    setPhoneNumber(formattedNumber);
-    validatePhoneNumber(formattedNumber, countryCode);
-  };
-
-  const handleCountryCodeChange = (c) => {
-    setCountryCode(c.cca2);
-    setCallingCode(`+${c.callingCode[0]}`);
-    validatePhoneNumber(phoneNumber, c.cca2);
-  };
-
-  useEffect(() => {
-    validatePhoneNumber(phoneNumber, countryCode);
-  }, [phoneNumber, countryCode]);
 
   const handlePress = (field) => {
     Alert.alert('Contact Support', `Please contact support to edit the ${field} field.`);
   };
-
+  
   const validateCurrentPassword = (password) => {
     let errorList = [];
     if (password && password.length < 8) errorList.push('Password must be at least 8 characters.');
@@ -66,7 +22,6 @@ const UnderlinedInputs = ({ changeConfirmNewPassword, changeNewPassword, changeC
     if (password && !/\W/.test(password)) errorList.push('Password must include at least 1 symbol.');
     return errorList;
   };
-
   const validateNewPassword = (password) => {
     let errorList = [];
     if (password && password.length < 8) errorList.push('Password must be at least 8 characters.');
@@ -76,35 +31,36 @@ const UnderlinedInputs = ({ changeConfirmNewPassword, changeNewPassword, changeC
     if (password && password === currentPassword) errorList.push('New password should be different from current password.');
     return errorList;
   };
-
   const validateConfirmNewPassword = (password) => {
     let errorList = [];
     if (password && password !== newPassword) errorList.push('Passwords do not match.');
     return errorList;
   };
-
+  
   useEffect(() => {
-    setErrors({
+    handleErrors({
       currentPassword: validateCurrentPassword(currentPassword),
       newPassword: validateNewPassword(newPassword),
       confirmNewPassword: validateConfirmNewPassword(confirmNewPassword),
     });
   }, [currentPassword, newPassword, confirmNewPassword]);
+  // const handleSubmit = () => {
+  //   if (!currentPassword || !newPassword || !confirmNewPassword) {
+  //     Alert.alert('Error', 'All password fields are required.');
+  //     return;
+  //   }
 
-  const handleSubmit = () => {
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
-      Alert.alert('Error', 'All password fields are required.');
-      return;
-    }
+  //   const { currentPassword: currentPasswordError, newPassword: newPasswordError, confirmNewPassword: confirmNewPasswordError } = errors;
 
-    const { currentPassword: currentPasswordError, newPassword: newPasswordError, confirmNewPassword: confirmNewPasswordError } = errors;
+  //   if (currentPasswordError.length > 0 || newPasswordError.length > 0 || confirmNewPasswordError.length > 0) {
+  //     Alert.alert('Error', 'Please correct the errors before submitting.');
+  //   } else {
+  //     Alert.alert('Success', 'Passwords are valid!');
+  //   }
+  // };
 
-    if (currentPasswordError.length > 0 || newPasswordError.length > 0 || confirmNewPasswordError.length > 0) {
-      Alert.alert('Error', 'Please correct the errors before submitting.');
-    } else {
-      Alert.alert('Success', 'Passwords are valid!');
-    }
-  };
+  
+
 
   return (
     <View style={styles.container}>
@@ -177,7 +133,7 @@ const UnderlinedInputs = ({ changeConfirmNewPassword, changeNewPassword, changeC
             secureTextEntry={!showCurrentPassword}
             underlineColorAndroid="transparent"
             value={currentPassword}
-            onChangeText={(e) => changeCurrentPassword(e)}
+            onChangeText={changeCurrentPassword}
           />
           <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
             <Feather name={showCurrentPassword ? "eye" : "eye-off"} size={20} color="#cccccc" />
@@ -193,7 +149,7 @@ const UnderlinedInputs = ({ changeConfirmNewPassword, changeNewPassword, changeC
             secureTextEntry={!showNewPassword}
             underlineColorAndroid="transparent"
             value={newPassword}
-            onChangeText={(e) => changeNewPassword(e)}
+            onChangeText={changeNewPassword}
           />
           <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
             <Feather name={showNewPassword ? "eye" : "eye-off"} size={20} color="#cccccc" />
@@ -209,7 +165,7 @@ const UnderlinedInputs = ({ changeConfirmNewPassword, changeNewPassword, changeC
             secureTextEntry={!showConfirmNewPassword}
             underlineColorAndroid="transparent"
             value={confirmNewPassword}
-            onChangeText={(e) => changeConfirmNewPassword(e)}
+            onChangeText={changeConfirmNewPassword}
           />
           <TouchableOpacity onPress={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
             <Feather name={showConfirmNewPassword ? "eye" : "eye-off"} size={20} color="#cccccc" />
@@ -217,9 +173,10 @@ const UnderlinedInputs = ({ changeConfirmNewPassword, changeNewPassword, changeC
         </View>
         {errors.confirmNewPassword.length > 0 && <Text style={styles.errorText}>{errors.confirmNewPassword[0]}</Text>}
       </View>
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+    {/* <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
         <Text style={styles.submitButtonText}>Submit</Text>
-      </TouchableOpacity>
+        </TouchableOpacity> */}
+        <ModalOfDevisesDeconnectionCRM  modalVisible={modalVisible} changeModalVisible={changeModalVisible} currentPassword={currentPassword} newPassword={newPassword} confirmNewPassword={confirmNewPassword} errors={errors} />
     </View>
   );
 };

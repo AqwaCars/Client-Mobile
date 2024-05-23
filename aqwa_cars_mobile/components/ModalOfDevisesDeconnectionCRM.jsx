@@ -1,13 +1,14 @@
-import { StyleSheet, Text, View, Modal, TouchableOpacity,ActivityIndicator } from 'react-native';
-import React,{useState} from 'react';
+import { StyleSheet, Text, View, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
 import { useNavigation } from "@react-navigation/native";
-import Toast from 'react-native-toast-message'; 
+import Toast from 'react-native-toast-message';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ModalOfDevisesDeconnectionCRM = ({ modalVisible, changeModalVisible, email, newPass, confirmPass, userEmail, changeEmailPassStates, passwordError, confirmPasswordError }) => {
+const ModalOfDevisesDeconnectionCRM = ({ modalVisible, changeModalVisible, currentPassword, newPassword, confirmNewPassword, errors }) => {
   const [loading, setLoading] = useState(false);
-
   const navigation = useNavigation();
+
   const handleErrors = (error) => {
     if (error.response) {
       const status = error.response.status;
@@ -22,11 +23,14 @@ const ModalOfDevisesDeconnectionCRM = ({ modalVisible, changeModalVisible, email
       Toast.show({ type: 'error', text1: 'Error', text2: 'Network error. Please check your internet connection.' });
     }
   };
+
   const logoutFromDevices = async () => {
-    setLoading(true); // Start loading
+    setLoading(true);
     try {
-      const response = await axios.post(`http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/deconnectionFromDevices`, { email });
-  
+      const id = await AsyncStorage.getItem('userId');
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.post(`http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/IdDeconnectionFromDevices`, { id, token });
+
       if (response.status === 200) {
         Toast.show({
           type: 'success',
@@ -37,91 +41,96 @@ const ModalOfDevisesDeconnectionCRM = ({ modalVisible, changeModalVisible, email
     } catch (error) {
       handleErrors(error);
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
-  
 
   const changePassword = async () => {
-    if (!newPass || !confirmPass) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter new password and confirm password' });
-      return;
-    }
-  
-    if (newPass !== confirmPass) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'New password and confirm password do not match' });
-      return;
-    }
-  
-    if (passwordError || confirmPasswordError) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Passwords do not meet the required criteria' });
-      return;
-    }
-  
     setLoading(true);
     try {
+      const id = await AsyncStorage.getItem('userId');
+      if (!currentPassword || !newPassword || !confirmNewPassword) {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter current password, new password, and confirm password' });
+        setLoading(false);
+        return;
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'New password and confirm password do not match' });
+        setLoading(false);
+        return;
+      }
+
+      if (errors.currentPassword.length > 0 || errors.newPassword.length > 0 || errors.confirmNewPassword.length > 0) {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Passwords do not meet the required criteria' });
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.post(
-        `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/changePassword`,
+        `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/changePasswordCRM`,
         {
-          email: email,
-          newPassword: newPass,
-          confirmPassword: confirmPass,
+          id,
+          currentPassword,
+          newPassword,
+          confirmPassword: confirmNewPassword
         }
       );
-  
+
       if (response.status === 200) {
-        await userEmail("");
-        await changeEmailPassStates("");
-        await navigation.navigate("newLogIn");
+        Toast.show({ type: 'success', text1: 'Success', text2: 'Password changed successfully' });
+        navigation.navigate("NewHome");
       }
     } catch (error) {
       handleErrors(error);
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
-  
 
   const changePasswordWithLogout = async () => {
-    if (!newPass || !confirmPass) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter new password and confirm password' });
-      return;
-    }
-  
-    if (newPass !== confirmPass) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'New password and confirm password do not match' });
-      return;
-    }
-  
-    if (passwordError || confirmPasswordError) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Passwords do not meet the required criteria' });
-      return;
-    }
-  
-    setLoading(true); // Start loading
+    setLoading(true);
     try {
+      if (!newPassword || !confirmNewPassword || !currentPassword) {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter current password, new password and confirm password' });
+        setLoading(false);
+        return;
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'New password and confirm password do not match' });
+        setLoading(false);
+        return;
+      }
+
+      if (errors.currentPassword.length > 0 || errors.newPassword.length > 0 || errors.confirmNewPassword.length > 0) {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Passwords do not meet the required criteria' });
+        setLoading(false);
+        return;
+      }
+
+      const id = await AsyncStorage.getItem('userId');
       const response = await axios.post(
-        `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/changePassword`,
+        `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/changePasswordCRM`,
         {
-          email: email,
-          newPassword: newPass,
-          confirmPassword: confirmPass,
+          id,
+          currentPassword,
+          newPassword,
+          confirmPassword: confirmNewPassword
         }
       );
-  
+
       if (response.status === 200) {
-        navigation.navigate("newLogIn");
+        Toast.show({ type: 'success', text1: 'Success', text2: 'Password changed successfully' });
         await logoutFromDevices();
-        await userEmail("");
-        await changeEmailPassStates("");
+        navigation.navigate("NewHome");
       }
     } catch (error) {
       handleErrors(error);
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
-  
 
   return (
     <View style={styles.container}>
@@ -135,36 +144,35 @@ const ModalOfDevisesDeconnectionCRM = ({ modalVisible, changeModalVisible, email
       >
         <View style={styles.modalBackground}>
           <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-  {loading ? (
-    <ActivityIndicator size="large" color="#0000ff" />
-  ) : (
-    <>
-      <Text style={styles.modalText}>Do you want to log out from all devices?</Text>
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.yesButton}
-          onPress={() => {
-            changeModalVisible(!modalVisible);
-            changePasswordWithLogout();
-          }}
-        >
-          <Text style={styles.textStyle}>Yes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.noButton}
-          onPress={() => {
-            changeModalVisible(!modalVisible);
-            changePassword();
-          }}
-        >
-          <Text style={styles.textStyleNo}>No</Text>
-        </TouchableOpacity>
-      </View>
-    </>
-  )}
-</View>
-
+            <View style={styles.modalView}>
+              {loading ? (
+                <ActivityIndicator size="large" color="#0000ff" />
+              ) : (
+                <>
+                  <Text style={styles.modalText}>Do you want to log out from all other devices?</Text>
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={styles.yesButton}
+                      onPress={() => {
+                        changeModalVisible(!modalVisible);
+                        changePasswordWithLogout();
+                      }}
+                    >
+                      <Text style={styles.textStyle}>Yes</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.noButton}
+                      onPress={() => {
+                        changeModalVisible(!modalVisible);
+                        changePassword();
+                      }}
+                    >
+                      <Text style={styles.textStyleNo}>No</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
           </View>
         </View>
       </Modal>
@@ -208,7 +216,7 @@ const styles = StyleSheet.create({
   modalText: {
     marginBottom: 15,
     textAlign: 'center',
-    fontWeight:"500"
+    fontWeight: "500"
   },
   buttonContainer: {
     flexDirection: 'row',
