@@ -37,4 +37,4 @@ yarn-error.*
 # Ignore yarn.lock and package.json
 /yarn.lock
 /package.json
-.yarn/
+/.yarn/
