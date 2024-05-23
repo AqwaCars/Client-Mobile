@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
+import axios from 'axios';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {LoginContext} from '../context/AuthContext.jsx'
 const { width, height } = Dimensions.get("window");
 
 const NavTab = () => {
@@ -15,13 +17,56 @@ const NavTab = () => {
     BookingHistory: width * 0.5,
     NewProfile: width * 0.75,
   };
+  const { logindata, setLoginData } = useContext(LoginContext);
 
+  const verifyUser = async () => {
+    const token = await AsyncStorage.getItem("token");
+    if (!token) {
+      console.log('No token found');
+      const tok =await AsyncStorage.removeItem("token");
+      const id = await AsyncStorage.removeItem("userId");
+      await setLoginData(false);
+      console.log('prrrrr',id,tok)
+      // await navigation.navigate("Welcome");
+    } else {
+      try {
+        const response = await axios.post(`http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/VerifyUser`, { token });
+        if (response.status === 200) {
+          setLoginData(true);
+        }
+      } catch (error) {
+        if (error.response) {
+          const { status, data } = error.response
+          if (status === 404) {
+            await AsyncStorage.removeItem("token");
+            await AsyncStorage.removeItem("userId");
+            await setLoginData(false);
+            await navigation.navigate("Welcome");
+          }
+        } else {
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Internal server error',
+          });
+          
+        }
+      }
+    }
+
+  };
+  useEffect(() => {
+  
+    verifyUser();
+  }, []);
   useEffect(() => {
     Animated.spring(slideAnim, {
       toValue: position[route.name],
       useNativeDriver: false,
       bounciness: 10,
     }).start();
+    verifyUser();
+
   }, [route, slideAnim, position]);
 
   const handlePress = (tabName) => {

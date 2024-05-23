@@ -38,7 +38,9 @@ import { saveEmailForgot, savePasswordUser } from "../store/userSlice";
 import Toast from "react-native-toast-message";
 import CountryPicker from "react-native-country-picker-modal";
 import libphonenumber from "libphonenumber-js";
-import { MaterialCommunityIcons, MaterialIcons, Feather } from "@expo/vector-icons";
+// const parsePhoneNumber = libphonenumber.parsePhoneNumberFromString;
+// import { useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons, MaterialIcons,Feather } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("screen");
 const NewSignUp = () => {
@@ -47,6 +49,12 @@ const NewSignUp = () => {
   const flatListRef = useRef(null);
   const [fontLoaded, setFontLoaded] = useState(false);
   const [isCameraVisible, setIsCameraVisible] = useState(false);
+  // const [type, setType] = useState("");
+  // const [typeSelfie, setTypeSelfie] = useState("");
+  const [type, setType] = useState(CameraPermissions.CameraType.back);
+  const [typeSelfie, setTypeSelfie] = useState(
+    CameraPermissions.CameraType.front
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [Document, setDocument] = useState("");
   const [showImageModal, setShowImageModal] = useState(false);
@@ -94,48 +102,100 @@ const NewSignUp = () => {
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
-  const cloudinaryUpload = async (imageUri, folderName, field) => {
-    const cloudName = "dl9cp8cwq";
-    const myUploadPreset = "aqwa_cars";
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 14);
 
-    try {
-      const formData = new FormData();
-      const uri = Platform.OS === 'android' ? imageUri : imageUri.replace('file://', '');
 
-      formData.append("file", {
-        uri: uri,
-        type: "image/jpeg",
-        name: "my_image.jpg",
-      });
-      formData.append("upload_preset", myUploadPreset);
 
-      if (folderName) {
-        formData.append("folder", folderName);
-      }
 
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+// const cloudinaryUpload = async (imageUri, folderName) => {
+//   const cloudName = "dl9cp8cwq";
+//   const myUploadPreset = "aqwa_cars";
 
-      if (response.ok) {
-        const responseData = await response.json();
-        console.log("Full response from Cloudinary:", responseData);
-        return { field, url: responseData.secure_url };
-      } else {
-        const errorResponse = await response.json();
-        console.error("Image upload failed", errorResponse);
-        throw new Error("Image upload failed");
-      }
-    } catch (error) {
-      console.log("Full response from Cloudinary:", error.message);
-      console.error("Cloudinary upload error:", JSON.stringify(error));
-      throw error;
+//   try {
+//     const formData = new FormData();
+//     formData.append("file", {
+//       uri: Platform.OS === 'android'? imageUri : imageUri.replace('file://', ''), 
+//       type: "image/jpeg",
+//       name: "my_image.jpg",
+//     });
+//     formData.append("upload_preset", myUploadPreset);
+
+//     // Append the folder name to the formData if it exists
+//     if (folderName) {
+//       formData.append("folder", folderName);
+//     }
+
+//     const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+//       method: 'POST',
+//       body: formData,
+//       headers: {
+//         'Content-Type': 'multipart/form-data',
+//       },
+//     });
+
+//     if (response.ok) {
+//       const responseData = await response.json();
+//       console.log("Full response from Cloudinary:", responseData);
+//       // await setPicsDetails({...picsDetail, [portait]: responseData.secure_url });
+//       // await setShowImageModal(false);
+//       // await setIsCameraVisible(false);
+//       // await setCapturedImage("");
+//       return responseData.secure_url;
+//     } else {
+//       console.error("Image upload failed");
+//     }
+//   } catch (error) {
+//     console.log("Full response from Cloudinary:", error.message);
+//     console.error("Cloudinary upload error:", JSON.stringify(error));
+//   }
+// };
+
+const cloudinaryUpload = async (imageUri, folderName, field) => {
+  const cloudName = "dl9cp8cwq";
+  const myUploadPreset = "aqwa_cars";
+
+  try {
+    const formData = new FormData();
+    const uri = Platform.OS === 'android' ? imageUri : imageUri.replace('file://', '');
+
+    formData.append("file", {
+      uri: uri,
+      type: "image/jpeg",
+      name: "my_image.jpg",
+    });
+    formData.append("upload_preset", myUploadPreset);
+
+    if (folderName) {
+      formData.append("folder", folderName);
     }
-  };
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (response.ok) {
+      const responseData = await response.json();
+      console.log("Full response from Cloudinary:", responseData);
+      return { field, url: responseData.secure_url };
+    } else {
+      const errorResponse = await response.json();
+      console.error("Image upload failed", errorResponse);
+      throw new Error("Image upload failed");
+    }
+  } catch (error) {
+    console.log("Full response from Cloudinary:", error.message);
+    console.error("Cloudinary upload error:", JSON.stringify(error));
+    throw error;
+  }
+};
+
+
+
 
   const validatePassword = () => {
     let error = "";
@@ -154,7 +214,7 @@ const NewSignUp = () => {
     }
     setPasswordError(error);
   };
-
+  
   const validateConfirmPassword = () => {
     let error = "";
     if (userDetails.confirmPassword.length > 0) {
@@ -164,12 +224,11 @@ const NewSignUp = () => {
     }
     setConfirmPasswordError(error);
   };
-
+  
   useEffect(() => {
     validatePassword();
     validateConfirmPassword();
   }, [userDetails.password, userDetails.confirmPassword]);
-
   const validateEmail = () => {
     const trimmedEmail = userDetails.email.trim();
     const re = /^\S+@\S+\.\S+$/;
@@ -177,11 +236,9 @@ const NewSignUp = () => {
     setUserDetails({ ...userDetails, email: trimmedEmail });
     setEmailError(isValid ? "" : trimmedEmail ? "Invalid email format" : "");
   };
-
-  useEffect(() => {
-    validateEmail();
-  }, [userDetails.email]);
-
+  useEffect(()=>{
+    validateEmail()
+  },[userDetails.email])
   const toggleNewPasswordVisibility = () => {
     setShowNewPassword(!showNewPassword);
   };
@@ -189,7 +246,6 @@ const NewSignUp = () => {
   const toggleConfirmPasswordVisibility = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
-
   const validatePhoneNumber = (number, country) => {
     if (number.trim() === "") {
       setIsValid(true);
@@ -206,7 +262,7 @@ const NewSignUp = () => {
       setIsValid(false);
     }
   };
-
+  
   const formatPhoneNumber = (text) => {
     try {
       const phoneNumberObj = parsePhoneNumberFromString(text, countryCode);
@@ -217,17 +273,16 @@ const NewSignUp = () => {
       setIsValid(false);
     }
   };
-
   const handlePhoneNumberChange = (text) => {
     formatPhoneNumber(text);
   };
-
+  
   const handleCountryCodeChange = (c) => {
     setCountryCode(c.cca2);
     setCallingCode(`+${c.callingCode[0]}`);
     setCountryName(c.name);
   };
-
+  
   useEffect(() => {
     validatePhoneNumber(phoneNumber, countryCode);
     if (callingCode && phoneNumber && isValid) {
@@ -242,7 +297,7 @@ const NewSignUp = () => {
       }));
     }
   }, [phoneNumber, countryCode, isValid]);
-
+  
   console.log(phoneNumber);
 
   const userEmail = (value) => {
@@ -354,9 +409,22 @@ const NewSignUp = () => {
     handleCameraPermission();
   }, []);
 
+  const handleSendEmail = async () => {
+    try {
+        const response = await axios.post(`http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/sendWelcomEmail`, { email:userDetails.email });
+        if (response.status === 200) {
+            console.log('Email sent successfully');
+        } else {
+            console.log('Failed to send email');
+        }
+    } catch (error) {
+        console.log(error.response?.data?.error || 'Failed to send email');
+    }
+};
+
   const SignUpHandle = async () => {
     setLoading(true);
-
+  
     try {
       const imagesToUpload = [
         { uri: picsDetail.selfie, field: "selfie" },
@@ -366,20 +434,20 @@ const NewSignUp = () => {
         { uri: picsDetail.backCardId, field: "backCardId" },
         ...(picsDetail.passport ? [{ uri: picsDetail.passport, field: "passport" }] : []),
       ];
-
+  
       const uploadPromises = imagesToUpload.map(image =>
         cloudinaryUpload(image.uri, "user_images", image.field)
       );
-
+  
       const uploadResults = await Promise.all(uploadPromises);
-
+  
       const updatedPicsDetails = uploadResults.reduce((acc, { field, url }) => {
         acc[field] = url;
         return acc;
       }, {});
-
+  
       setPicsDetails(updatedPicsDetails);
-
+  
       const response = await axios.post(
         `http://${process.env.EXPO_PUBLIC_SERVER_IP}:5000/api/users/SignUpUser`,
         {
@@ -405,9 +473,10 @@ const NewSignUp = () => {
           text2: "Registration Successfully done 😃!",
         });
         console.log("Successfully registered");
+        await handleSendEmail()
+        await otpVerifSend();
         await userEmail(userDetails.email);
         await userPassword(userDetails.password);
-        await otpVerifSend();
         await navigation.navigate("OtpVerification");
       }
     } catch (error) {
@@ -443,6 +512,8 @@ const NewSignUp = () => {
       setLoading(false);
     }
   };
+  
+  
 
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -479,7 +550,13 @@ const NewSignUp = () => {
     await setPicsDetails({ ...picsDetail, [portait]: capturedImage });
     console.log("Image confirmed:", capturedImage);
     await setShowImageModal(false);
+    await setIsCameraVisible(false);
     await setCapturedImage("");
+   await  setTimeout(() => {
+      if (flatListRef.current) {
+        flatListRef.current.scrollToIndex({ animated: true, index: 1 });
+      }
+    }, 100)
   };
 
   const handleRetakePicture = () => {
@@ -497,11 +574,20 @@ const NewSignUp = () => {
     loadFonts();
   }, []);
 
+  // function isFormComplete(userDetails, picsDetail) {
+  //   return (
+  //     Object.values(userDetails).length === 6 &&
+  //     Object.values(picsDetail).length === 6 &&
+  //     Object.values(userDetails).every((value) => value !== "") &&
+  //     Object.values(picsDetail).every((value) => value !== "")
+  //   );
+  // }
+
   function isFormComplete(userDetails, picsDetail) {
     const userDetailsComplete =
       Object.values(userDetails).length === 6 &&
       Object.values(userDetails).every((value) => value !== "");
-
+  
     const picsDetailComplete =
       Object.entries(picsDetail).length === 6 &&
       Object.entries(picsDetail).every(([key, value]) => {
@@ -510,7 +596,7 @@ const NewSignUp = () => {
         }
         return value !== "";
       });
-
+  
     return userDetailsComplete && picsDetailComplete;
   }
 
@@ -608,58 +694,64 @@ const NewSignUp = () => {
                 />
                 <View style={styles.contInpError} >
 
-                  <TextInput
-                    style={styles.FirstInput}
-                    placeholder="Enter Your  Email"
-                    placeholderTextColor={"#cccccc"}
-                    onChangeText={(text) => handleUserChange("email", text)}
-                    value={userDetails.email}
-                    keyboardType="email-address"
-                  />
-                  {emailError ? (
+                <TextInput
+                  style={styles.FirstInput}
+                  placeholder="Enter Your  Email"
+                  placeholderTextColor={"#cccccc"}
+                  onChangeText={(text) => handleUserChange("email", text)}
+                  value={userDetails.email}
+                  keyboardType="email-address"
+                />
+                 {emailError ? (
                     <Text style={styles.errorText}>{emailError}</Text>
                   ) : null}
                 </View>
-                <View style={styles.contInpError}>
+<View style={styles.contInpError}>
 
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <View style={styles.FirstInputCont}>
-                      <CountryPicker
-                        withCallingCode
-                        withFilter
-                        withFlag
-                        withAlphaFilter
-                        countryCode={countryCode}
-                        onSelect={handleCountryCodeChange}
-                        containerButtonStyle={[
-                          styles.FirstInputPhonePicker,
-                        ]}
-                      />
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View style={styles.FirstInputCont}>
+                    <CountryPicker
+                      withCallingCode
+                      withFilter
+                      withFlag
+                      // withCountryNameButton
+                      // withCallingCodeButton
+                      withAlphaFilter
+                      countryCode={countryCode}
+                      onSelect={handleCountryCodeChange}
+                      containerButtonStyle={[
+                 
+                        styles.FirstInputPhonePicker,
+                      ]}
+                    />
                       <View style={styles.callingCodeTextCont}>
-                        {!phoneNumber ? <Text style={{ color: "#cccccc" }}>{callingCode}</Text> : <Text style={{ color: "white" }}>{callingCode}</Text>}
+
+                    {!phoneNumber ? <Text style={{ color: "#cccccc" }}>{callingCode}</Text>:<Text style={{ color: "white" }}>{callingCode}</Text>}
                       </View>
-                      <TextInput
-                        style={styles.FirstInputPhone}
-                        onChangeText={(text) => {
-                          setPhoneNumber(text);
-                          handlePhoneNumberChange(text);
-                        }}
-                        value={phoneNumber}
-                        placeholder="Enter your phone number"
-                        placeholderTextColor={"#cccccc"}
-                        keyboardType="phone-pad"
-                        blurOnSubmit={false}
-                      />
-                    </View>
+                    <TextInput
+                      style={styles.FirstInputPhone}
+                      onChangeText={(text) => {
+                        setPhoneNumber(text);
+                        handlePhoneNumberChange(text);
+                      }}
+                      value={phoneNumber}
+                      placeholder="Enter your phone number"
+                      placeholderTextColor={"#cccccc"}
+
+                      // required
+                      keyboardType="phone-pad"
+                      blurOnSubmit={false}
+                    />
                   </View>
-                  {!isValid && phoneNumber.trim() !== "" && (
-                    <Text style={styles.errorText}>Invalid phone number</Text>
-                  )}
                 </View>
+                  {!isValid && phoneNumber.trim() !== "" && (
+          <Text style={styles.errorText}>Invalid phone number</Text>
+        )}
+</View>
                 <TouchableOpacity onPress={showMode} style={styles.birthBtn}>
-                  {!userDetails.dateOfBirth ? <Text style={{ color: "#cccccc" }}>
-                    Select your date
-                  </Text> : <Text style={{ color: "white" }}>{userDetails.dateOfBirth}</Text>}
+                { !userDetails.dateOfBirth?  <Text style={{ color: "#cccccc" }}>
+                  Select your date
+                  </Text>:<Text style={{ color: "white" }}>{userDetails.dateOfBirth}</Text>}
                 </TouchableOpacity>
                 {show && (
                   <DateTimePicker
@@ -668,55 +760,56 @@ const NewSignUp = () => {
                     display="default"
                     onChange={onChange}
                     onDismiss={onDismiss}
+                    minimumDate={minDate}
                   />
                 )}
                 <View style={styles.contInpError} >
 
-                  <View>
-                    <TextInput
-                      style={styles.FirstInputPassword}
-                      placeholder="Type Your Password"
-                      placeholderTextColor={"#cccccc"}
-                      onChangeText={(text) => handleUserChange("password", text)}
-                      value={userDetails.password}
-                      keyboardType="default"
-                      secureTextEntry={!showNewPassword}
-                    />
-                    <Pressable
-                      style={styles.eyeIconContainer}
-                      onPress={toggleNewPasswordVisibility}
-                    >
-                      <Feather name={showNewPassword ? "eye" : "eye-off"} size={18} color="#cccccc" />
-                    </Pressable>
-                  </View>
-                  {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+                <View>
+                <TextInput
+                  style={styles.FirstInputPassword}
+                  placeholder="Type Your Password"
+                  placeholderTextColor={"#cccccc"}
+                  onChangeText={(text) => handleUserChange("password", text)}
+                  value={userDetails.password}
+                  keyboardType="default"
+                  secureTextEntry={!showNewPassword}
+                />
+                 <Pressable
+                    style={styles.eyeIconContainer}
+                    onPress={toggleNewPasswordVisibility}
+                  >
+                    <Feather name={showNewPassword ? "eye" : "eye-off"} size={18} color="#cccccc" />
+                  </Pressable>
+                </View>
+                {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
                 </View>
-                <View style={styles.contInpError} >
+              <View style={styles.contInpError} >
 
-                  <View>
+                <View>
 
-                    <TextInput
-                      style={styles.FirstInputPassword}
-                      placeholder="Confirm Your Password"
-                      placeholderTextColor={"#cccccc"}
-                      onChangeText={(text) =>
-                        handleUserChange("confirmPassword", text)
-                      }
-                      value={userDetails.confirmPassword}
-                      keyboardType="default"
-                      secureTextEntry={!showConfirmPassword}
-                    />
-                    <Pressable
-                      style={styles.eyeIconContainer}
-                      onPress={toggleConfirmPasswordVisibility}
-                    >
-                      <Feather name={showConfirmPassword ? "eye" : "eye-off"} size={18} color="#cccccc" />
-                    </Pressable>
-                  </View>
-                  {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
-
+                <TextInput
+                  style={styles.FirstInputPassword}
+                  placeholder="Confirm Your Password"
+                  placeholderTextColor={"#cccccc"}
+                  onChangeText={(text) =>
+                    handleUserChange("confirmPassword", text)
+                  }
+                  value={userDetails.confirmPassword}
+                  keyboardType="default"
+                  secureTextEntry={!showConfirmPassword}
+                />
+                  <Pressable
+                    style={styles.eyeIconContainer}
+                    onPress={toggleConfirmPasswordVisibility}
+                  >
+                    <Feather name={showConfirmPassword ? "eye" : "eye-off"} size={18} color="#cccccc" />
+                  </Pressable>
                 </View>
+                {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
+
+              </View>
               </View>
             </View>
           </ScrollView>
@@ -890,8 +983,9 @@ const NewSignUp = () => {
                 <Pressable
                   style={styles.inputContainer}
                   onPress={() => {
+                    setType("back");
                     setPortrait("frontCardId");
-                    pickImage("frontCardId");
+                    setIsCameraVisible(true);
                   }}
                 >
                   <View
@@ -899,7 +993,7 @@ const NewSignUp = () => {
                       paddingBottom: height * 0.007,
                     }}
                   >
-                    {picsDetail.frontCardId ? <Change /> : <Add />}
+                    {picsDetail.license ? <Change /> : <Add />}
                   </View>
                   <TextInput
                     style={[
@@ -912,7 +1006,8 @@ const NewSignUp = () => {
                         : " Photo of the front of your Id Card "
                     }
                     placeholderTextColor={"#cccccc"}
-                    editable={false}
+                    // keyboardType="email-address"
+                    editable={false} // Make the TextInput not editable
                   />
                   {!picsDetail.frontCardId && (
                     <Text
@@ -930,8 +1025,9 @@ const NewSignUp = () => {
                 <Pressable
                   style={styles.inputContainer}
                   onPress={() => {
+                    setType("back");
                     setPortrait("backCardId");
-                    pickImage("backCardId");
+                    setIsCameraVisible(true);
                   }}
                 >
                   <View
@@ -939,7 +1035,7 @@ const NewSignUp = () => {
                       paddingBottom: height * 0.007,
                     }}
                   >
-                    {picsDetail.backCardId ? <Change /> : <Add />}
+                    {picsDetail.backLicense ? <Change /> : <Add />}
                   </View>
                   <TextInput
                     style={[
@@ -952,7 +1048,8 @@ const NewSignUp = () => {
                         : " Photo of the back of your Id Card "
                     }
                     placeholderTextColor={"#cccccc"}
-                    editable={false}
+                    // keyboardType="email-address"
+                    editable={false} // Make the TextInput not editable
                   />
                   {!picsDetail.backCardId && (
                     <Text
@@ -970,6 +1067,7 @@ const NewSignUp = () => {
                 <Pressable
                   style={styles.inputContainer}
                   onPress={() => {
+                    setType("back");
                     setPortrait("passport");
                     pickImage("passport");
                   }}
@@ -1069,10 +1167,10 @@ const NewSignUp = () => {
                   {isFormComplete(userDetails, picsDetail)
                     ? "Submit"
                     : activeIndex === 0
-                      ? "Next"
-                      : activeIndex === 1
-                        ? "Previous"
-                        : null}
+                    ? "Next"
+                    : activeIndex === 1
+                    ? "Previous"
+                    : null}
                 </Text>
                 {isFormComplete(userDetails, picsDetail) ? (
                   <Arrowright />
@@ -1090,14 +1188,48 @@ const NewSignUp = () => {
         </LinearGradient>
       )}
 
-      {showImageModal && (
-        <ImagePreviewModal
-          visible={showImageModal}
-          imageUri={capturedImage}
-          onConfirm={handleConfirmImage}
-          onRetake={handleRetakePicture}
-          portait={portait}
-        />
+      {isCameraVisible && (
+        <View style={styles.containerCCamera}>
+          <View style={styles.cameraContainer}>
+            <Camera
+              ref={cameraRef}
+              style={styles.camera}
+              type={type}
+              ratio="16:9"
+            />
+            {showImageModal && (
+              <ImagePreviewModal
+                visible={showImageModal}
+                imageUri={capturedImage}
+                onConfirm={handleConfirmImage}
+                onRetake={handleRetakePicture}
+                portait={portait}
+                // cloudinaryUpload={cloudinaryUpload}
+              />
+            )}
+            <TouchableOpacity
+              style={styles.cancelButtonContainer}
+              onPress={() => setIsCameraVisible(false)}
+            >
+              <MaterialIcons name="cancel" size={24} color="white" />
+            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+              {/* <TouchableOpacity onPress={() => setIsCameraVisible(false)}>
+        <MaterialIcons name="cancel" size={24} color="white" />
+        </TouchableOpacity> */}
+              <TouchableOpacity
+                style={styles.captureButton}
+                onPress={() => takePicture(portait)}
+              >
+                <MaterialCommunityIcons
+                  name="camera-iris"
+                  size={75}
+                  color="white"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       )}
     </>
   );
@@ -1191,6 +1323,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   camera: {
+    // flex: 1,
     width: width,
     height: height * 0.8,
   },
@@ -1209,6 +1342,8 @@ const styles = StyleSheet.create({
   },
   captureButton: {
     backgroundColor: "rgba(255, 255, 255, 0.2)",
+    // paddingHorizontal: 20,
+    // paddingVertical: 10,
     borderRadius: 50,
     alignItems: "center",
     justifyContent: "center",
@@ -1240,9 +1375,15 @@ const styles = StyleSheet.create({
     height: Dimensions.get("window").height * 0.05,
     width: width * 0.08,
     flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    paddingBottom: 7,
+    alignItems:"center",
+    justifyContent:"flex-end",
+    paddingBottom:7
+    // color: "white",
+    // marginBottom: 10,
+    // padding: 5,
+    // borderRadius: 5,
+    // borderColor: "gray",
+    // borderBottomWidth: 1,
   },
   FirstInputCont: {
     height: Dimensions.get("window").height * 0.05,
@@ -1255,7 +1396,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     flexDirection: "row",
   },
-  callingCodeTextCont: {
+  callingCodeText:{
+    color: "white",
+    
+  },
+  callingCodeTextCont:{
     height: Dimensions.get("window").height * 0.05,
     width: width * 0.13,
     justifyContent: "center",
@@ -1276,14 +1421,14 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderColor: "gray",
     borderBottomWidth: 1,
-    position: "relative"
+    position:"relative"
   },
   errorText: {
     color: "red",
     paddingBottom: 5,
-    fontSize: 11
+    fontSize:11
   },
-  contInpError: {
+  contInpError:{
     flexDirection: "column",
   }
 });
