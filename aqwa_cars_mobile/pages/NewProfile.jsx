@@ -1,4 +1,4 @@
-import React, { useState,useContext, useEffect } from 'react';
+import React, { useState,useContext, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, Pressable, Dimensions, ScrollView, Image, ImageBackground, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import NavTab from '../components/NavBar';
@@ -10,11 +10,11 @@ const { height, width } = Dimensions.get("screen");
 import {LoginContext} from "../context/AuthContext.jsx"
 import { useDispatch, useSelector } from 'react-redux';
 import { getOneById } from '../store/userSlice.js';
-
+import ReviewSheet from '../components/ReviewSheet.jsx';
 const NewProfile = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
-
+ const refRBSheet = useRef()
   const [loading, setLoading] = useState(false);
   const  [data,setData] = useState({})
   const { logindata,setLoginData } = useContext(LoginContext);
@@ -144,11 +144,12 @@ const NewProfile = () => {
             <Ionicons name="help-circle" size={25} color="black" />
             <Text style={styles.titleIcon}>FAQs</Text>
           </Pressable>
-          <Pressable style={styles.button}>
+          <Pressable style={styles.button} onPress={()=>refRBSheet.current.open()}>
             <Ionicons name="book" size={25} color="black" />
             <Text style={styles.titleIcon}>Legal</Text>
           </Pressable>
         </View>
+        <ReviewSheet refRBSheet={refRBSheet}/>
       </ScrollView>
       <NavTab />
     </View>

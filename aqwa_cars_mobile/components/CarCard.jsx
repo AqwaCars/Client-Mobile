@@ -24,7 +24,7 @@ const CarCard = ({ car }) => {
     console.log(markedDatesArray);
     const lastIndex = markedDatesArray.length - 1; // Get the last index of the array
     console.log('i fly like a butterfly', lastIndex);
-    return (lastIndex + 1) * car.price; // Multiply the length by car.price to get the total price
+    return (lastIndex) * car.price; // Multiply the length by car.price to get the total price
   };
 
   const totalPrice = calculateTotalPrice();

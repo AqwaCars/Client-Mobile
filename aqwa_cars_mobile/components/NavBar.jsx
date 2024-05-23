@@ -13,7 +13,7 @@ const NavTab = () => {
   const [slideAnim] = useState(new Animated.Value(0)); // Initialize slideAnim with 0
   const position = {
     NewHome: 0,
-    Search: width * 0.25,
+    AdvancedSearch: width * 0.25,
     BookingHistory: width * 0.5,
     NewProfile: width * 0.75,
   };
@@ -79,9 +79,9 @@ const NavTab = () => {
         <Icon name="home" size={20} color={route.name === 'NewHome' ? '#8c52ff' : '#bdbdbd'} />
         {route.name === 'NewHome' && <Text style={[styles.tabText, { color: '#8c52ff' }]}>Home</Text>}
       </TouchableOpacity>
-      <TouchableOpacity style={styles.tab} onPress={() => handlePress('Search')}>
-        <Icon name="search" size={20} color={route.name === 'Search' ? '#8c52ff' : '#bdbdbd'} />
-        {route.name === 'Search' && <Text style={[styles.tabText, { color: '#8c52ff' }]}>Search</Text>}
+      <TouchableOpacity style={styles.tab} onPress={() => handlePress('AdvancedSearch')}>
+        <Icon name="search" size={20} color={route.name === 'AdvancedSearch' ? '#8c52ff' : '#bdbdbd'} />
+        {route.name === 'AdvancedSearch' && <Text style={[styles.tabText, { color: '#8c52ff' }]}>Search</Text>}
       </TouchableOpacity>
       <TouchableOpacity style={styles.tab} onPress={() => handlePress('BookingHistory')}>
         <Icon name="history" size={20} color={route.name === 'BookingHistory' ? '#8c52ff' : '#bdbdbd'} />

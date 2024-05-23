@@ -29,8 +29,6 @@ import RotatableSvg from "../components/RotatedArrow";
 import BackARrow from "../assets/Svg/backArrrow.svg";
 import Add from "../assets/Svg/add-picture.svg";
 import Change from "../assets/Svg/change-picture.svg";
-import { Camera } from "expo-camera";
-import * as CameraPermissions from "expo-camera";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSelector, useDispatch } from "react-redux";
 import { SignUpClick } from "../store/userSlice";
@@ -50,7 +48,6 @@ const NewSignUp = () => {
 
   const flatListRef = useRef(null);
   const [fontLoaded, setFontLoaded] = useState(false);
-  const [Ratio, setRatio] = useState(0);
   const [isCameraVisible, setIsCameraVisible] = useState(false);
   // const [type, setType] = useState("");
   // const [typeSelfie, setTypeSelfie] = useState("");
@@ -366,10 +363,10 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
       });
     }
   };
+
   useEffect(() => {
     const handleCameraPermission = async () => {
-      const { status } =
-        await CameraPermissions.requestCameraPermissionsAsync();
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
       setCameraPermission(status);
       if (status === "granted") {
         return;
@@ -384,7 +381,7 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
         );
       } else {
         const { status: newStatus } =
-          await Camera.requestCameraPermissionsAsync();
+          await ImagePicker.requestCameraPermissionsAsync();
         setCameraPermission(newStatus);
         if (newStatus === "granted") {
           return;
@@ -468,7 +465,7 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
           cardIdBack: updatedPicsDetails.backCardId
         }
       );
-  
+
       if (response.status === 201) {
         Toast.show({
           type: "success",
@@ -525,37 +522,27 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
     if (currentDate) {
       const formattedDate = currentDate.toISOString().split("T")[0];
       setUserDetails({ ...userDetails, dateOfBirth: formattedDate });
-      // console.log(formattedDate, "formdata");
     }
   };
   const onDismiss = () => {
     setShow(false);
   };
-  // console.log(userDetails, "lllll");
 
   const showMode = () => {
     setShow(true);
   };
-  const cameraRef = useRef(null);
 
-  const takePicture = async (portrait) => {
-    try {
-      const { status } =
-        await CameraPermissions.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Sorry, we need camera permissions to make this work!");
-        return;
-      }
+  const pickImage = async (portrait) => {
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
 
-      if (cameraRef.current) {
-        const options = { quality: 0.5, base64: true };
-        const data = await cameraRef.current.takePictureAsync(options);
-        setCapturedImage(data.uri);
-        setShowImageModal(true);
-        // setIsCameraVisible(false);
-      }
-    } catch (error) {
-      console.error("Error taking picture:", error);
+    if (!result.canceled) {
+      setCapturedImage(result.assets[0].uri);
+      setShowImageModal(true);
+      setPortrait(portrait);
     }
   };
 
@@ -574,7 +561,6 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
 
   const handleRetakePicture = () => {
     setShowImageModal(false);
-    setIsCameraVisible(true);
     setCapturedImage("");
   };
 
@@ -672,7 +658,6 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
           start={{ x: 0, y: 1 }}
           end={{ x: 1, y: 0 }}
           colors={["#321947", "#000000"]}
-          // style={styles.formContainer}
         >
           <ScrollView
             contentContainerStyle={styles.ScrollContainer}
@@ -682,14 +667,12 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
               style={{
                 alignItems: "center",
                 justifyContent: "space-evenly",
-                // backgroundColor:"red",
                 height,
               }}
             >
               <View
                 style={{
                   height: height * 0.2,
-                  // backgroundColor:"green"
                 }}
               >
                 <Image
@@ -700,7 +683,6 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
               <View
                 style={{
                   height: height * 0.4,
-                  // backgroundColor:"yellow"
                 }}
               >
                 <TextInput
@@ -840,7 +822,6 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
           start={{ x: 0, y: 1 }}
           end={{ x: 1, y: 0 }}
           colors={["#321947", "#000000"]}
-          // style={styles.formContainer}
         >
           <ScrollView
             contentContainerStyle={styles.ScrollContainer}
@@ -850,14 +831,12 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
               style={{
                 alignItems: "center",
                 justifyContent: "space-evenly",
-                // backgroundColor:"red",
                 height,
               }}
             >
               <View
                 style={{
                   height: height * 0.2,
-                  // backgroundColor:"green"
                 }}
               >
                 <Image
@@ -868,7 +847,6 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
               <View
                 style={{
                   height: height * 0.4,
-                  // backgroundColor:"yellow",
                   justifyContent: "center",
                 }}
               >
@@ -876,9 +854,8 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
                   delayPressIn={0}
                   style={styles.inputContainer}
                   onPress={() => {
-                    setType("front");
                     setPortrait("selfie");
-                    setIsCameraVisible(true);
+                    pickImage("selfie");
                   }}
                 >
                   <View
@@ -888,7 +865,6 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
                   >
                     {picsDetail.selfie ? <Change /> : <Add />}
                   </View>
-                  {/* <View style={styles.inputContainer}> */}
                   <TextInput
                     style={[
                       styles.input,
@@ -923,14 +899,12 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
                       *
                     </Text>
                   )}
-                  {/* </View> */}
                 </Pressable>
                 <Pressable
                   style={styles.inputContainer}
                   onPress={() => {
-                    setType("back");
                     setPortrait("license");
-                    setIsCameraVisible(true);
+                    pickImage("license");
                   }}
                 >
                   <View
@@ -951,8 +925,7 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
                         : " Photo of the front of your Driving License "
                     }
                     placeholderTextColor={"#cccccc"}
-                    // keyboardType="email-address"
-                    editable={false} // Make the TextInput not editable
+                    editable={false}
                   />
                   {!picsDetail.license && (
                     <Text
@@ -970,9 +943,8 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
                 <Pressable
                   style={styles.inputContainer}
                   onPress={() => {
-                    setType("back");
                     setPortrait("backLicense");
-                    setIsCameraVisible(true);
+                    pickImage("backLicense");
                   }}
                 >
                   <View
@@ -993,8 +965,7 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
                         : " Photo of the back of your Driving License "
                     }
                     placeholderTextColor={"#cccccc"}
-                    // keyboardType="email-address"
-                    editable={false} // Make the TextInput not editable
+                    editable={false}
                   />
                   {!picsDetail.backLicense && (
                     <Text
@@ -1098,7 +1069,7 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
                   onPress={() => {
                     setType("back");
                     setPortrait("passport");
-                    setIsCameraVisible(true);
+                    pickImage("passport");
                   }}
                 >
                   <View
@@ -1119,8 +1090,7 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
                         : " Photo of your Passport (optional)  "
                     }
                     placeholderTextColor={"#cccccc"}
-                    // keyboardType="email-address"
-                    editable={false} // Make the TextInput not editable
+                    editable={false}
                   />
                   {!picsDetail.passport && (
                     <Text
@@ -1164,7 +1134,7 @@ const cloudinaryUpload = async (imageUri, folderName, field) => {
           {keyboardVisible ? null : (
             <Pressable
               activeOpacity={0.5}
-              style={[styles.FlatBtn, { backgroundColor: "#321947" }]} // Adjusted to use a solid color
+              style={[styles.FlatBtn, { backgroundColor: "#321947" }]}
               onPress={() =>
                 isFormComplete(userDetails, picsDetail)
                   ? SignUpHandle()
@@ -1281,16 +1251,7 @@ const styles = StyleSheet.create({
   FlatBtn: {
     height: height * 0.08,
     width: width,
-    // paddingRight:width*.15,
-    // borderBottomEndRadius: 100,
-    // backgroundColor:"red",
-    // borderBottomLeftRadius: 100,
-    // backgroundColor: "transparent",
     alignItems: "center",
-    // justifyContent: "flex-end",
-    // flexDirection: "row",
-    // borderTopColor: "#000000",
-    // justifyContent: "center",
     paddingBottom: height * 0.005,
     paddingLeft: width * 0.6,
   },
@@ -1314,7 +1275,6 @@ const styles = StyleSheet.create({
   input: {
     height: Dimensions.get("window").height * 0.05,
     width: width * 0.75,
-
     color: "white",
     marginBottom: 10,
     padding: 5,
@@ -1326,7 +1286,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: height * 0.01,
     borderRadius: 100,
-    // marginTop: 10,
     borderColor: "#000000",
     borderWidth: 0.5,
   },
@@ -1340,7 +1299,6 @@ const styles = StyleSheet.create({
   ScrollContainer: {
     height,
     alignItems: "center",
-    // justifyContent: "space-evenly",
     flexGrow: 1,
   },
   birthBtn: {
@@ -1358,8 +1316,6 @@ const styles = StyleSheet.create({
   },
   containerCCamera: {
     flex: 1,
-    // height,
-    // width
   },
   cameraContainer: {
     flex: 1,
@@ -1414,7 +1370,6 @@ const styles = StyleSheet.create({
     height: Dimensions.get("window").height * 0.05,
     width: width * 0.5,
     color: "white",
-
   },
   FirstInputPhonePicker: {
     height: Dimensions.get("window").height * 0.05,

@@ -26,8 +26,10 @@ import Emailaccount from "./pages/Emailaccount.jsx";
 import OtpForgotEmail from "./pages/OtpForgotEmail.jsx"
 import ChangePassword from "./pages/ChangePassword.jsx";
 import Toast from 'react-native-toast-message';
+// import CameraExample from "./pages/CameraExample.jsx";
 import Context from "./context/AuthContext.jsx";
 import ReviewSheet from "./components/ReviewSheet.jsx";
+import AdvancedSearch from "./pages/AdvancedSearch.jsx";
 const Stack = createStackNavigator();
 
 function App() {
@@ -49,6 +51,11 @@ function App() {
             <Stack.Screen
               name="ReviewSheet"
               component={ReviewSheet}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="AdvancedSearch"
+              component={AdvancedSearch}
               options={{ headerShown: false }}
             />
              <Stack.Screen

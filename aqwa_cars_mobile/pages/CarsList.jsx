@@ -28,7 +28,7 @@ const CarsList = () => {
 
   const markedDates = useSelector(MarkedDates)
 
-  console.log('cars list ha zebi',markedDates)
+  console.log('cars list ha',markedDates)
 console.log('bro start',selectedStartDate)
 console.log('broo finish',selectedFinishDate)
 
