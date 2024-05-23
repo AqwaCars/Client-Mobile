@@ -13,7 +13,8 @@ import * as Location from 'expo-location';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LoginContext } from '../context/AuthContext.jsx';
 import {
-  CurrentTime, IsFocused, LocationModalVisible, LocationRedux, MarkedDates, ModalVisible, Predictions, ReturnLocation, ReturnModalVisible, ReturnPredictions, ShowAdditionalRow, finishDate, setIsFocused, setLocation, setLocationModalVisible, setMarkedDates, setModalVisible, setPredictions, setReturnLocation, setReturnModalVisible, setReturnPrediction, setSelectedFinishDate, setSelectedStartDate, setShowAdditionalRow, startDate, getAllCarByDate
+  CurrentTime, LocationModalVisible, LocationRedux, MarkedDates, ModalVisible, Predictions, ReturnLocation, ReturnModalVisible, ReturnPredictions, ShowAdditionalRow, finishDate, setIsFocused, setLocation, setLocationModalVisible, setMarkedDates, setModalVisible, setPredictions, setReturnLocation, setReturnModalVisible, setReturnPrediction, setSelectedFinishDate, setSelectedStartDate, setShowAdditionalRow, startDate, getAllCarByDate,
+  IsFocused
 } from '../store/bookingSlice';
 import Toast from 'react-native-toast-message';
 import AdBanner from '../components/AdBanner.jsx';
@@ -37,7 +38,7 @@ const NewHome = () => {
   const showAdditionalRow = useSelector(ShowAdditionalRow);
   const markedDates = useSelector(MarkedDates);
   const locationModalVisible = useSelector(LocationModalVisible);
-  const isFocused = useSelector(IsFocused);
+  const [isFocused, setIsFocused] = useState(false);
   const [loading, setLoading] = useState('');
   const [locationExists, setLocationExists] = useState(true);
   const [disabledDates, setDisabledDates] = useState({});
@@ -134,41 +135,70 @@ const NewHome = () => {
   };
 
   const onDayPress = (day) => {
-    if (!selectedStartDate || (selectedStartDate && selectedFinishDate)) {
-      // If no start date or both dates are already selected, reset and set start date
+    const selectedDate = new Date(day.dateString);
+    const today = new Date();
+  
+    if (selectedDate < today) {
+      return;
+    }
+  
+    if (!selectedStartDate || selectedDate < new Date(selectedStartDate)) {
       dispatch(setSelectedStartDate(day.dateString));
       dispatch(setSelectedFinishDate(null));
-    } else {
-      // If start date is selected, set finish date
-      if (new Date(day.dateString) < new Date(selectedStartDate)) {
-        // If the selected finish date is before the start date, swap them
-        dispatch(setSelectedFinishDate(selectedStartDate));
-        dispatch(setSelectedStartDate(day.dateString));
-      } else {
-        dispatch(setSelectedFinishDate(day.dateString));
+      dispatch(setMarkedDates({
+        [day.dateString]: { startingDay: true, selected: true, color: '#8c52ff', textColor: 'white' },
+      }));
+    } else if (!selectedFinishDate || selectedDate > new Date(selectedFinishDate)) {
+      const startDate = new Date(selectedStartDate);
+      const finishDate = new Date(day.dateString);
+      const datesToMark = {};
+      let currentDate = new Date(startDate);
+  
+      while (currentDate <= finishDate) {
+        const dateString = currentDate.toISOString().split('T')[0];
+        if (dateString === selectedStartDate) {
+          datesToMark[dateString] = { startingDay: true, selected: true, color: '#8c52ff', textColor: 'white' };
+        } else if (dateString === day.dateString) {
+          datesToMark[dateString] = { endingDay: true, selected: true, color: '#8c52ff', textColor: 'white' };
+        } else {
+          datesToMark[dateString] = { selected: true, color: 'rgba(140, 82, 255, 0.5)', textColor: 'white' };
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
       }
+  
+      dispatch(setSelectedFinishDate(day.dateString));
+      dispatch(setMarkedDates(datesToMark));
+    } else {
+      dispatch(setSelectedStartDate(null));
+      dispatch(setSelectedFinishDate(null));
+      dispatch(setMarkedDates({}));
     }
   };
   
   
-  // useEffect(() => {
-  //   const today = new Date();
-  //   const tomorrow = new Date(today);
-  //   tomorrow.setDate(tomorrow.getDate() + 1);
+
+  useEffect(() => {
+    if (selectedStartDate && selectedFinishDate) {
+      const startDate = new Date(selectedStartDate);
+      const endDate = new Date(selectedFinishDate);
+      const marked = {};
+      let currentDate = new Date(startDate);
   
-  //   const todayString = today.toISOString().split('T')[0];
-  //   const tomorrowString = tomorrow.toISOString().split('T')[0];
+      while (currentDate <= endDate) {
+        const dateString = currentDate.toISOString().split('T')[0];
+        if (dateString === selectedStartDate) {
+          marked[dateString] = { startingDay: true, selected: true, color: '#8c52ff', textColor: 'white' };
+        } else if (dateString === selectedFinishDate) {
+          marked[dateString] = { endingDay: true, selected: true, color: '#8c52ff', textColor: 'white' };
+        } else {
+          marked[dateString] = { selected: true, color: 'rgba(140, 82, 255, 0.5)', textColor: 'white' };
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
   
-  //   dispatch(setSelectedStartDate(todayString));
-  //   dispatch(setSelectedFinishDate(tomorrowString));
-  
-  //   const initialMarkedDates = {
-  //     [todayString]: { startingDay: true, selected: true, color: '#8c52ff', textColor: 'white' },
-  //     [tomorrowString]: { endingDay: true, selected: true, color: '#8c52ff', textColor: 'white' }
-  //   };
-  
-  //   dispatch(setMarkedDates(initialMarkedDates));
-  // }, []);
+      dispatch(setMarkedDates(marked));
+    }
+  }, [selectedStartDate, selectedFinishDate, dispatch]);
 
   const openModal = () => {
     dispatch(setModalVisible(true));
@@ -292,7 +322,6 @@ const NewHome = () => {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        
         <ImageBackground style={styles.background} source={require('../assets/Karhba.png')} resizeMode='cover'>
           <Image style={styles.logo} source={require('../assets/aqwaWhite.png')} />
           <AdBanner/>
@@ -385,13 +414,12 @@ const NewHome = () => {
             onDayPress={onDayPress}
             markedDates={{
               ...disabledDates,
-              // ...markedDates,
+              ...markedDates,
             }}
             theme={calendarTheme}
             markingType='period'
-
           />
-          <ModalFooter   fetchAvailableCars={handleFindCars} />
+          <ModalFooter fetchAvailableCars={handleFindCars} />
         </View>
       </Modal>
       <Modal
@@ -407,8 +435,8 @@ const NewHome = () => {
               style={styles.searchInput}
               placeholder="Search..."
               onChangeText={handleChangeText}
-              onFocus={() => dispatch(setIsFocused(true))}
-              onBlur={() => dispatch(setIsFocused(false))}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               autoFocus={true}
             />
             {location !== '' && (
@@ -473,8 +501,8 @@ const NewHome = () => {
               style={styles.searchInput}
               placeholder="Search..."
               onChangeText={handleReturnChangeText}
-              onFocus={() => dispatch(setIsFocused(true))}
-              onBlur={() => dispatch(setIsFocused(false))}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               autoFocus={true}
             />
             {returnLocation !== '' && (
@@ -519,10 +547,10 @@ const NewHome = () => {
           <ActivityIndicator size="large" color="white" />
         </View>
       )}
-      
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -692,10 +720,6 @@ const styles = StyleSheet.create({
   predictionList: {
     maxHeight: 200,
   },
-  modal: {
-    justifyContent: 'flex-end',
-    margin: 0,
-  },
   modalContent2: {
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
@@ -766,4 +790,5 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
 });
+
 export default NewHome;

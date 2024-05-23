@@ -42,7 +42,7 @@ function App() {
       >
         
         <NavigationContainer>
-          <Stack.Navigator initialRouteName="AdvancedSearch">
+          <Stack.Navigator initialRouteName="NewHome">
             <Stack.Screen
               name="CarsList"
               component={CarsList}

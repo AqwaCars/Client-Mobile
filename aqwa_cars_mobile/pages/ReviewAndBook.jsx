@@ -103,6 +103,8 @@ const ReviewAndBook = ({ route }) => {
         city: additionalDetails.city,
         name: data.userName,
         Email: data.email,
+        rentalTime:"16:00",
+        returnTime: "18:00",
         phoneNumber: data.phoneNumber,
         amount: total,
         UserId: data.id,
